@@ -56,11 +56,38 @@ markers <- c('CD4','CD8A','CD8B','CD19','CD3G','CD3D',
 sc2 <- filter_genes(sc, markers = markers, vmr.min = 2, 
             min.cells.expressed = 100, rescue.genes = FALSE)
 
+## ---- cache=T, eval=T,echo=T, fig.width=4, fig.height=4, fig.cap='Additional selection of genes with modes at nonzero counts. Symbols in blue represent genes rescued.'----
+sc_rescue <- filter_genes(sc, markers = markers, vmr.min = 2, min.cells.expressed = 100,
+                          rescue.genes = TRUE, progress.bar = FALSE)
+
+## ---- cache=T------------------------------------------------------------
+rownames(genes(sc_rescue)) <- rownames(count(sc_rescue)) <- genes(sc_rescue)[,2]
+sc <- sc_rescue
+
+## ---- cache=T------------------------------------------------------------
+set.seed(2)
+sc <- factorize(sc, ranks = 3, nrun = 1, ncnn.step = 1, 
+                criterion='connectivity', verbose = 3)
+
+## ---- cache=T------------------------------------------------------------
+sc <- factorize(sc, ranks = 3, nrun = 10, verbose = 2)
+
+## ---- cache=T------------------------------------------------------------
+sc <- factorize(sc, ranks = 3:8, nrun = 5, verbose = 1, progress.bar = FALSE)
+
 ## ------------------------------------------------------------------------
 measure(sc)
 
 ## ---- fig.width=6.5, fig.height=3, fig.cap='Factorization quality measures as functions of the rank. Residual is (negative) the likelihood function being optimized. Dispersion measures the degree of bimodality in consistency matrix. Cophenetic correlation measures the degree of agreement between consistency matrix and hierarchical clustering.'----
 plot(sc)
+
+## ---- cache=T------------------------------------------------------------
+set.seed(1)
+sb <- sc_rescue
+sb <- vb_factorize(sb, verbose = 3, Tol = 2e-4, hyper.update.n0 = 5)
+
+## ---- cache=T------------------------------------------------------------
+sb <- vb_factorize(sb, ranks = 2:8, verbose = 1, nrun = 5, progress.bar = FALSE)
 
 ## ------------------------------------------------------------------------
 head(measure(sb))
@@ -72,6 +99,10 @@ plot(sb)
 ranks(sb)
 
 head(basis(sb)[[which(ranks(sb)==5)]]) # basis matrix W for rank 5
+
+## ---- cache=T, fig.width = 4, fig.height=6, fig.cap='Heatmap of basis matrix elements. Marker genes selected in rows, other than those provided as input, are based on the degree to which each features strongly in a particular cluster only and not in the rest. Columns represent the clusters.'----
+gene_map(sb, markers = markers, rank = 5, max.per.cluster = 4, gene.name=genes(sb)[,2],
+         cexRow = 0.7)
 
 ## ------------------------------------------------------------------------
 cell_type <- c('CD8+_T','B_cells','CD4+_T','NK','Monocytes')
