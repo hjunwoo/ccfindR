@@ -348,6 +348,7 @@ setMethod('dmeasure', signature='scNMFSet', function(object) object@dmeasure)
 #' @param x Object to be subsetted
 #' @param i row index
 #' @param j column index
+#' @return Subsetted object
 setMethod('[', 'scNMFSet', function(x, i, j){
                     if(missing(i)) i=1:(dim(x)[1])
                     if(missing(j)) j=1:(dim(x)[2])

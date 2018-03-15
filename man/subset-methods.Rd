@@ -15,6 +15,9 @@
 
 \item{j}{column index}
 }
+\value{
+Subsetted object
+}
 \description{
 Subsetting scNMFSet object
 }
