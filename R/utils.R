@@ -183,27 +183,27 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
   if(plot){
     xlim=c(min(ncexpr),max(ncexpr))
     if(sum(selected_genes) < ngenes){
-      plot(x=ncexpr[!selected_genes], y=vmr[!selected_genes], 
+      graphics::plot(x=ncexpr[!selected_genes], y=vmr[!selected_genes], 
            xlim=xlim,ylim=c(min(vmr),max(vmr)), log='y', pch=21, 
         col='gray', bg='white', xlab='No. of cells expressed', ylab='VMR', 
         main='Genes', cex=cex, bty='n')
       graphics::points(x=ncexpr[variable_genes], y=vmr[variable_genes], pch=21, 
              bg='red', cex=cex, lwd=0.5)
       if(rescue.genes)
-        points(x=ncexpr[mode_genes], y=vmr[mode_genes], pch=21, bg='blue', 
+        graphics::points(x=ncexpr[mode_genes], y=vmr[mode_genes], pch=21, bg='blue', 
                cex=cex, lwd=0.5)
       if(!is.null(markers))
         if(sum(marker_genes) > 0)
           points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
                  bg='orange', cex=cex, lwd=0.5)
     }else{
-      plot(x=ncexpr[variable_genes], y=vmr[variable_genes], 
+      graphics::plot(x=ncexpr[variable_genes], y=vmr[variable_genes], 
            xlim=xlim,ylim=c(min(vmr),max(vmr)), pch=21, bg='white', 
            cex=cex, lwd=0.5, log='y', col='gray', 
            xlab='No. of cells expressed',
              ylab='VMR', main='Genes', bty='n')
       if(!is.null(markers)) if(sum(marker_genes) > 0)
-        points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
+        graphics::points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
                bg='orange', cex=cex, lwd=0.5)
     }
   }

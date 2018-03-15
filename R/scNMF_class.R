@@ -637,6 +637,7 @@ setMethod('dmeasure<-','scNMFSet',
 #' @param measure \code{c('measure','dmeasure')}
 #' @return \code{NULL}
 #' @export
+#' @importFrom graphics plot
 setMethod('plot',signature="scNMFSet",definition = 
             function(x, measure='measure'){
     
@@ -658,31 +659,31 @@ setMethod('plot',signature="scNMFSet",definition =
     
      if(bayes){
        par(mfrow=c(1,1))
-       plot(x=mx$rank, y=mx$evidence, type='b',xlab='Rank', ylab=ylab,
+       graphics::plot(x=mx$rank, y=mx$evidence, type='b',xlab='Rank', ylab=ylab,
             bty='n') 
      }
      if(!bayes){   
        par(mfrow=c(1,3))
-       plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
+       graphics::plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
           ylim=c(min(mx$likelihood),max(mx$likelihood)), xlab='Rank',
           ylab=ylab[1], bty='n')
        if(dflag)
          if(!is.na(mx$r_se[1])) error_bar(mx[,c('ranks','likelihood','r_se')])
-       points(x=mx$rank,y=mx$likelihood,pch=21,bg='white',type='b')
+       graphics::points(x=mx$rank,y=mx$likelihood,pch=21,bg='white',type='b')
      
-       plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
+       graphics::plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
           ylim=c(min(mx$dispersion),max(mx$dispersion)), xlab='Rank',
           ylab=ylab[2], bty='n')
        if(dflag)
          if(!is.na(mx$d_se[1])) error_bar(mx[,c('ranks','dispersion','d_se')])
-       points(x=mx$rank,y=mx$dispersion,pch=21,bg='white',type='b')
+       graphics::points(x=mx$rank,y=mx$dispersion,pch=21,bg='white',type='b')
      
        plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
           ylim=c(min(mx$cophenetic),max(mx$cophenetic)), xlab='Rank',
           ylab=ylab[3], bty='n')
        if(dflag)
          if(!is.na(mx$c_se[1])) error_bar(mx[,c('ranks','cophenetic','c_se')])
-       points(x=mx$rank, y=mx$cophenetic, pch=21,bg='white',type='b')
+       graphics::points(x=mx$rank, y=mx$cophenetic, pch=21,bg='white',type='b')
      }
             
      return(invisible())
