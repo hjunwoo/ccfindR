@@ -2,9 +2,7 @@
 % Please edit documentation in R/scNMF_class.R
 \name{basis<-}
 \alias{basis<-}
-\title{Modify basis matrices
- 
-Can be used to access and modify basis matrices}
+\title{Generics for basis matrix assignment}
 \usage{
 basis(object) <- value
 }
@@ -15,13 +13,9 @@ basis(object) <- value
 }
 \value{
 Input object with updated basis matrices
-
-Input object with updated basis matrices
 }
 \description{
-Modify basis matrices
- 
-Can be used to access and modify basis matrices
+Access and modify basis matrices
 }
 \examples{
 set.seed(1)

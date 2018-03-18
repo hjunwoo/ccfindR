@@ -13,10 +13,10 @@ gene_map(object, rank, markers = NULL, subtract.mean = TRUE, log = TRUE,
 
 \item{rank}{Rank value for which the gene map is to be displayed. 
 The object must contain the corresponding slot (one element of 
-     \code{object@basis[[k]]} for which \code{object@ranks[[k]]==rank}.}
+     \code{basis(object)[[k]]} for which \code{ranks(object)[[k]]==rank}.}
 
 \item{markers}{Vector of gene names containing markers to be included 
-in addition to the metagenes. All entries of \code{object@genes}
+in addition to the metagenes. All entries of \code{rowData(object)}
 matching them will be added to the metagene list.}
 
 \item{subtract.mean}{Process each rows of basis matrix \code{W} by 
@@ -46,15 +46,16 @@ along the column. See \code{\link[stats]{heatmap}}.}
 Generate heatmap of metagenes derived from factorization of count data.
 }
 \details{
-Wrapper for \code{\link[stats]{heatmap}} for displaying metagenes and
+Wrapper for \code{\link[stats]{heatmap}} to display metagenes and
 associated basis matrix element magnitudes. Factorization results inside
 an object specified by its rank value will be retrieved, and metagene
 sets identified from clusters.
 
 If \code{object} contains multiple ranks, only the requested 
   rank's basis matrix W will be displayed. The genes displayed in rows
-     are selected by "max" scheme 
-     [Carmona-Saez, BMC Bioinformatics (2006)]:
+     are selected by "max" scheme
+    [Carmona-Saez, BMC Bioinformatics (2006), 
+   \url{https://doi.org/10.1186/1471-2105-7-54}]:
      for each cluster (\code{k in 1:ncol}), 
      rows of W are sorted by decreasing order
      of \code{W[,k]}. Marker genes for \code{k} are those among the top
@@ -64,7 +65,9 @@ If \code{object} contains multiple ranks, only the requested
  
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-s <- scNMFSet(x)
+rownames(x) <- 1:10
+colnames(x) <- 1:100
+s <- scNMFSet(count=x,rowData=1:10, colData=1:100)
 s <- vb_factorize(s,ranks=2:5)
 plot(s)
 gene_map(s, rank=3)

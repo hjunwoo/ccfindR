@@ -39,7 +39,7 @@ distribution with mean values given by \code{WH}.
 \examples{
 set.seed(1)
 x <- simulate_whx(nrow=50,ncol=100,rank=5)
-s <- scNMFSet(x$x)
+s <- scNMFSet(count=x$x)
 s <- vb_factorize(s,ranks=2:8,nrun=5)
 plot(s)  
 }

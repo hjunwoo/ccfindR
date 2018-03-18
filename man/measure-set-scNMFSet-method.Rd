@@ -3,18 +3,24 @@
 \docType{methods}
 \name{measure<-,scNMFSet-method}
 \alias{measure<-,scNMFSet-method}
-\title{Rank measure assignment}
+\title{Modify factorization measure}
 \usage{
 \S4method{measure}{scNMFSet}(object) <- value
 }
 \arguments{
-\item{object}{Object containing measure}
+\item{object}{Object of class \code{scNMFSet}}
 
-\item{value}{New measure (data frame) to be substituted}
+\item{value}{Measure to be substituted}
 }
 \value{
-Object with modified measure
+Input object with updated measure
 }
 \description{
-Rank measure assignment
+Can be used to access and modify factorization measure
+}
+\examples{
+s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+s <- vb_factorize(s, ranks=3)
+measure(s)[,-1] <- apply(measure(s)[,-1],1:2, round,digits=3)
+measure(s)
 }

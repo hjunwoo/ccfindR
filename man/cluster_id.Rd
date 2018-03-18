@@ -22,7 +22,7 @@ Use factorization results in an object to assign cells into clusters.
 \examples{
 set.seed(1)
 x <- simulate_whx(nrow=50,ncol=100,rank=5)
-s <- scNMFSet(x$x)
+s <- scNMFSet(count=x$x)
 s <- vb_factorize(s,ranks=2:8,nrun=5)
 cid <- cluster_id(s, rank=5)
 table(cid)

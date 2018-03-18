@@ -12,6 +12,9 @@
 
 \item{value}{DataFrame of row annotation to be substituted}
 }
+\value{
+Row annotation DataFrame
+}
 \description{
 Gene annotation assignment
 }

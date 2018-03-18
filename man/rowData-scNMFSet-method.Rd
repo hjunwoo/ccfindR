@@ -16,3 +16,10 @@ DataFrame of row annotation
 \description{
 Gene annotation accessor
 }
+\examples{
+x <- matrix(rpois(n=12,lambda=3),4,3)
+rownames(x) <- 1:4
+colnames(x) <- 1:3
+s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
+rowData(s) 
+}

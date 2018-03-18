@@ -10,11 +10,20 @@
 \arguments{
 \item{x}{Object containing cell annotation}
 }
+\value{
+Column annotation DataFrame
+}
 \description{
 Cell annotation accessor
 }
 \examples{
-s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-colData(s) <- letters[1:3]
-colData(s)
+library(S4Vectors)
+x <- matrix(rpois(n=12,lambda=3),4,3)
+rownames(x) <- 1:4
+colnames(x) <- c('a','b','c')
+s <- scNMFSet(count=x,rowData=1:4,colData=c('a','b','c'))
+cols <- DataFrame(tissue=c('tissue1','tissue1','tissue2'))
+rownames(cols) <- c('a','b','c')
+colData(s) <- cols
+s
 }

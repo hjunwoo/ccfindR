@@ -1,6 +1,6 @@
 #' Class \code{scNMFSet} for storing input data and results
 #'
-#' \code{S4} class derived from \link{\code{SingleCellExperiment}}
+#' \code{S4} class derived from \code{\link{SingleCellExperiment}}
 #' that can store single-cell count matrix, 
 #' gene and cell annotation data frames, and factorization factors as well 
 #' as quality measures for rank determination.
@@ -27,6 +27,7 @@
 #' not explicitly used.
 #' 
 #' @examples
+#' library(S4Vectors)
 #' # toy matrix
 #' ngenes <- 8; ncells <- 5
 #' mat <- matrix(rpois(n=ngenes*ncells,lambda=3),ngenes,ncells)
@@ -54,14 +55,11 @@
 #' colData(s) <- DataFrame(cell_id=1:ncells,
 #'               cell_type=c(rep('tissue1',2),
 #'                           rep('tissue2',ncells-2)))
-#' # slots be accessed directly
-#' s@colData  
-#'
 #' @return Object of class \code{scNMFSet}
 #' @export scNMFSet
-# @import Matrix
-#' @import methods
 #' @import SingleCellExperiment
+#' @import S4Vectors
+#' @import methods
 setClass('scNMFSet',
          slots=c(ranks='vector',
                  basis='list',
@@ -70,22 +68,28 @@ setClass('scNMFSet',
          contains='SingleCellExperiment')
 
 #' Create \code{scNMFSet} object
-#' 
-#' Object derived from \link{\code{SingleCellExperiment}}
+#'
+#' Object derived from \code{\link{SingleCellExperiment}}
 #' 
 #' @param count Count matrix
-#' @param ... Other parameters \link{\code{SingleCellExperiment}}
+#' @param ... Other parameters of \code{\link{SingleCellExperiment}}
 #' @param remove.zeros Remove empty rows and columns
 #' @return Object of class \code{scNMFSet}.
+#' @examples
+#' count <- matrix(rpois(n=12,lambda=2),4,3)
+#' s <- scNMFSet(count=count)
+#' s
 #' @export
 scNMFSet <- function(count=NULL, ..., remove.zeros=TRUE){
-           if(!is.null(count)) 
+           if(!is.null(count))
              Object <- SingleCellExperiment(assays=list(counts=count), ...)
            else
              Object <- SingleCellExperiment(...)
-           if(min(counts(Object))<0) stop('Count data contains negative values.')
+           if(min(counts(Object))<0) 
+             stop('Count data contains negative values.')
            if(remove.zeros) Object <- remove_zeros(Object)
-           return(new('scNMFSet', Object))
+           x <- new('scNMFSet', Object)
+           return(x)
 }
 
 #' Display object
@@ -109,9 +113,10 @@ setMethod('show', signature='scNMFSet',
 
 #' Accessor for count matrix
 #' 
-#' @param Object Object containing count matrix
+#' @param object Object containing count matrix
+#' @return Count matrix
 #' @examples
-#' s <- scNMFSet(count = matrix(rpoise(n=12, 3,4)))
+#' s <- scNMFSet(count = matrix(rpois(n=12,lambda=3),3,4))
 #' counts(s)
 #' 
 #' @export
@@ -127,7 +132,7 @@ setMethod('counts',signature='scNMFSet',
 # @param value Matrix-like object for replacement
 # @examples
 # 
-setReplaceMethod('counts',c('scNMFSet','ANY'),
+setMethod('counts<-','scNMFSet',
      function(object,value){
        assay(object, i='counts') <- value
        object
@@ -285,25 +290,41 @@ setValidity('scNMFSet', function(object){
 #' 
 #' @param x Object containing data
 #' @return DataFrame of row annotation
+#' @examples
+#' x <- matrix(rpois(n=12,lambda=3),4,3)
+#' rownames(x) <- 1:4
+#' colnames(x) <- 1:3
+#' s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
+#' rowData(s) 
 #' @export
 setMethod('rowData','scNMFSet', 
-          function(x){callNextMethod()})
+          function(x){
+            callNextMethod()})
 #' Gene annotation assignment
 #' 
 #' @param x Object containing data
 #' @param value DataFrame of row annotation to be substituted
+#' @return Row annotation DataFrame
 #' @export
 #' @import SummarizedExperiment
 setMethod('rowData<-','scNMFSet', 
-          function(x, value){callNextMethod()})
+          function(x, value){
+            callNextMethod()})
 
 #' Cell annotation accessor
 #' 
 #' @param x Object containing cell annotation
+#' @return Column annotation DataFrame 
 #' @examples
-#' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' colData(s) <- letters[1:3]
-#' colData(s)
+#' library(S4Vectors)
+#' x <- matrix(rpois(n=12,lambda=3),4,3)
+#' rownames(x) <- 1:4
+#' colnames(x) <- c('a','b','c')
+#' s <- scNMFSet(count=x,rowData=1:4,colData=c('a','b','c'))
+#' cols <- DataFrame(tissue=c('tissue1','tissue1','tissue2'))
+#' rownames(cols) <- c('a','b','c')
+#' colData(s) <- cols
+#' s
 #' @export
 setMethod('colData','scNMFSet',
           function(x){callNextMethod()})
@@ -312,17 +333,25 @@ setMethod('colData','scNMFSet',
 #' 
 #' @param x Object containing cell annotation
 #' @param value DataFrame to be substituted
+#' @return Updated column annotation 
 #' @examples
-#' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' colData(s) <- letters[1:3]
-#' colData(s)
+#' library(S4Vectors)
+#' x <- matrix(rpois(n=12,lambda=3),4,3)
+#' rownames(x) <- 1:4
+#' colnames(x) <- c('a','b','c')
+#' s <- scNMFSet(count=x,rowData=1:4,colData=c('a','b','c'))
+#' cols <- DataFrame(tissue=c('tissue1','tissue1','tissue2'))
+#' rownames(cols) <- c('a','b','c')
+#' colData(s) <- cols
+#' s
 #' @export
-setReplaceMethod('colData','scNMFSet',
-          function(x, value){x@colData <- value})
+setMethod('colData<-','scNMFSet', 
+          function(x, value){
+            callNextMethod()})
 
-#' Modify ranks
-#'  
-#' Can be used to access and modify ranks 
+#' Generics for ranks assignment
+#'
+#' Replace \code{ranks} slot of \code{scNMFSet} object
 #' 
 #' @param object Object of class \code{scNMFSet}
 #' @param value Rank values (vector) to be substituted
@@ -332,24 +361,30 @@ setReplaceMethod('colData','scNMFSet',
 #' s <- vb_factorize(s, ranks=2:3)
 #' ranks(s) <- c('two','three')
 #' ranks(s)
-
-#' @return Input object with updated ranks
 #' @export
 setGeneric('ranks<-', function(object,value) standardGeneric('ranks<-'))
-#' Rank values assignment
+#' Modify ranks
+#'
+#' Replace \code{ranks} slot of \code{scNMFSet} object
 #' 
-#' @param object Object containing ranks
-#' @param value New rank vector to be substituted
-#' @return Object with rank vector modified
+#' @param object Object of class \code{scNMFSet}
+#' @param value Rank values (vector) to be substituted
+#' @return Input object with updated ranks
+#' @examples
+#' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+#' s <- vb_factorize(s, ranks=2:3)
+#' ranks(s) <- c('two','three')
+#' ranks(s)
+#' @export
 setMethod('ranks<-','scNMFSet',
        function(object, value){
          object@ranks <- value
          if(validObject(object)) return(object)
 })
 
-#' Modify basis matrices
-#'  
-#' Can be used to access and modify basis matrices 
+#' Generics for basis matrix assignment
+#'
+#' Access and modify basis matrices 
 #' 
 #' @param object Object of class \code{scNMFSet}
 #' @param value Basis matrix to be substituted
@@ -360,22 +395,44 @@ setMethod('ranks<-','scNMFSet',
 #' s <- vb_factorize(s, ranks=3)
 #' basis(s)[[1]] <- apply(basis(s)[[1]],1:2,round,digits=3)
 #' basis(s)
-#' @return Input object with updated basis matrices
 #' @export
 setGeneric('basis<-', function(object,value) standardGeneric('basis<-'))
-#' Basis matrix assignment
+#' Modify basis matrices
+#'
+#' Access and modify basis matrices 
 #' 
-#' @param object Object containing basis matrix
-#' @param value New basis matrices to be substituted
-#' @return Object with basis matrix modified
+#' @param object Object of class \code{scNMFSet}
+#' @param value Basis matrix to be substituted
+#' @return Input object with updated basis matrices
+#' @examples
+#' set.seed(1)
+#' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+#' s <- vb_factorize(s, ranks=3)
+#' basis(s)[[1]] <- apply(basis(s)[[1]],1:2,round,digits=3)
+#' basis(s)
+#' @export
 setMethod('basis<-','scNMFSet',
        function(object, value){
          object@basis <- value
          if(validObject(object)) return(object)
 })
 
+#' Generics for coefficient matrix assignment
+#'
+#' Access and modify coefficient matrices 
+#' 
+#' @param object Object of class \code{scNMFSet}
+#' @param value Coefficient matrix to be substituted
+#' @return Input object with updated coefficient matrices
+#' @examples
+#' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+#' s <- vb_factorize(s, ranks=3)
+#' coeff(s)[[1]] <- apply(coeff(s)[[1]],1:2,round,digits=2)
+#' coeff(s)
+#' @export
+setGeneric('coeff<-', function(object,value) standardGeneric('coeff<-'))
 #' Modify coefficient matrices
-#'  
+#'
 #' Can be used to access and modify coefficient matrices 
 #' 
 #' @param object Object of class \code{scNMFSet}
@@ -386,22 +443,15 @@ setMethod('basis<-','scNMFSet',
 #' s <- vb_factorize(s, ranks=3)
 #' coeff(s)[[1]] <- apply(coeff(s)[[1]],1:2,round,digits=2)
 #' coeff(s)
-#' @return Input object with updated coefficient matrices
 #' @export
-setGeneric('coeff<-', function(object,value) standardGeneric('coeff<-'))
-#' Coefficient matrix assignment
-#'
-#' @param object Object containing coefficient matrices
-#' @param value New coefficient matrices to be substituted
-#' @return Object with coefficient matrix modified
 setMethod('coeff<-','scNMFSet',
        function(object, value){
          object@coeff<- value
          if(validObject(object)) return(object)
 })
 
-#' Modify factorization measure
-#'  
+#' Generics for factorization measure assignment
+#'
 #' Can be used to access and modify factorization measure
 #' 
 #' @param object Object of class \code{scNMFSet}
@@ -414,11 +464,19 @@ setMethod('coeff<-','scNMFSet',
 #' @return Input object with updated measure
 #' @export
 setGeneric('measure<-', function(object,value) standardGeneric('measure<-'))
-#' Rank measure assignment
+#' Modify factorization measure
+#'
+#' Can be used to access and modify factorization measure
 #' 
-#' @param object Object containing measure
-#' @param value New measure (data frame) to be substituted
-#' @return Object with modified measure 
+#' @param object Object of class \code{scNMFSet}
+#' @param value Measure to be substituted
+#' @examples
+#' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+#' s <- vb_factorize(s, ranks=3)
+#' measure(s)[,-1] <- apply(measure(s)[,-1],1:2, round,digits=3)
+#' measure(s)
+#' @return Input object with updated measure
+#' @export
 setMethod('measure<-','scNMFSet',
        function(object, value){
          object@measure<- value
@@ -474,7 +532,16 @@ setMethod('plot',signature="scNMFSet",definition =
      return(invisible())
 })
 
-# Remove rows or columns that are empty from an object
+#' Remove rows or columns that are empty from an object
+#'
+#' @param object Object containing data
+#' @return Object with empty rows/columns removed
+#' @examples
+#' set.seed(1)
+#' x <- matrix(rpois(n=100,lambda=0.1),10,10)
+#' s <- scNMFSet(count=x,remove.zeros=FALSE)
+#' s2 <- remove_zeros(s)
+#' s2
 #' @export
 remove_zeros <- function(object){
   

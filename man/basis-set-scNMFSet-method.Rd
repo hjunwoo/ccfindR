@@ -3,18 +3,25 @@
 \docType{methods}
 \name{basis<-,scNMFSet-method}
 \alias{basis<-,scNMFSet-method}
-\title{Basis matrix assignment}
+\title{Modify basis matrices}
 \usage{
 \S4method{basis}{scNMFSet}(object) <- value
 }
 \arguments{
-\item{object}{Object containing basis matrix}
+\item{object}{Object of class \code{scNMFSet}}
 
-\item{value}{New basis matrices to be substituted}
+\item{value}{Basis matrix to be substituted}
 }
 \value{
-Object with basis matrix modified
+Input object with updated basis matrices
 }
 \description{
-Basis matrix assignment
+Access and modify basis matrices
+}
+\examples{
+set.seed(1)
+s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+s <- vb_factorize(s, ranks=3)
+basis(s)[[1]] <- apply(basis(s)[[1]],1:2,round,digits=3)
+basis(s)
 }

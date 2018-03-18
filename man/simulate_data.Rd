@@ -36,7 +36,7 @@ If \code{generate.factors = TRUE}, list of components
   \code{w} (basis matrix, \code{nfeatures x rank}),
         \code{h} (coefficient matrix, \code{rank x ncells}, where 
         \code{ncells}
-        is equal to \code{n}, the sum of \code{nsamples}, and 
+        is equal to \code{n}, the sum of \code{nsamples}), and 
         \code{x}, a matrix of Poisson deviates with mean \code{W x H}.
         If \code{generate.factors = FALSE}, only the count matrix 
         \code{x} is in the list.

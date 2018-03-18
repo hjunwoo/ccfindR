@@ -24,10 +24,11 @@ visualize_clusters(object, rank, verbose = FALSE, cex = 1,
 \code{NULL}
 }
 \description{
-Use tSNE to generate two-dimensional map of coefficient matrix
+Use tSNE to generate two-dimensional map of coefficient matrix.
 }
 \details{
-Retrieve a coefficient matrix \code{H} from an object and use its elements
+It retrieves a coefficient matrix \code{H} 
+from an object and use its elements
 to assign each cell into clusters. 
 t-Distributed Stochastic Neighbor Embedding (t-SNE; 
 \url{https://lvdmaaten.github.io/tsne/}) is used to visualize the 
@@ -37,7 +38,9 @@ in 2D. Also plotted is the distribution of cell counts for all clusters.
 \examples{
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
-s <- scNMFSet(x)
+rownames(x) <- 1:10
+colnames(x) <- 1:170
+s <- scNMFSet(count=x,rowData=1:10,colData=1:170)
 s <- vb_factorize(s,ranks=2:5)
 visualize_clusters(s,rank=5)
 }

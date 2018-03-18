@@ -8,13 +8,16 @@
 \S4method{counts}{scNMFSet}(object)
 }
 \arguments{
-\item{Object}{Object containing count matrix}
+\item{object}{Object containing count matrix}
+}
+\value{
+Count matrix
 }
 \description{
 Accessor for count matrix
 }
 \examples{
-s <- scNMFSet(count = matrix(rpoise(n=12, 3,4)))
+s <- scNMFSet(count = matrix(rpois(n=12,lambda=3),3,4))
 counts(s)
 
 }

@@ -2,9 +2,7 @@
 % Please edit documentation in R/scNMF_class.R
 \name{measure<-}
 \alias{measure<-}
-\title{Modify factorization measure
- 
-Can be used to access and modify factorization measure}
+\title{Generics for factorization measure assignment}
 \usage{
 measure(object) <- value
 }
@@ -17,8 +15,6 @@ measure(object) <- value
 Input object with updated measure
 }
 \description{
-Modify factorization measure
- 
 Can be used to access and modify factorization measure
 }
 \examples{

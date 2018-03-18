@@ -19,13 +19,14 @@ Rescale count matrix entries such that all cells have the same library size.
 For analysis purposes, it is sometimes useful to rescale integer count
 data into floats such that all cells have the same median counts. 
 This function will calculate the median of all UMI counts of cells (total
-number of RNAs derived from each cell). All count data are then rescale
+number of RNAs derived from each cell). All count data are then rescaled
 such that cells have uniform UMI count equal to the median.
 }
 \examples{
+library(Matrix)
 set.seed(1)
-s <- scNMFSet(matrix(stats::rpois(n=1200,lambda=3),40,30))
-Matrix::colMeans(count(s))
+s <- scNMFSet(count=matrix(rpois(n=1200,lambda=3),40,30))
+colMeans(counts(s))
 s <- normalize_count(s)
-Matrix::colMeans(count(s))
+colMeans(counts(s))
 }

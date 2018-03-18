@@ -17,7 +17,7 @@ Object of class \code{scNMFSet}
 \code{NULL}
 }
 \description{
-\code{S4} class derived from \link{\code{SingleCellExperiment}}
+\code{S4} class derived from \code{\link{SingleCellExperiment}}
 that can store single-cell count matrix, 
 gene and cell annotation data frames, and factorization factors as well 
 as quality measures for rank determination.
@@ -64,6 +64,7 @@ not explicitly used.}
 }}
 
 \examples{
+library(S4Vectors)
 # toy matrix
 ngenes <- 8; ncells <- 5
 mat <- matrix(rpois(n=ngenes*ncells,lambda=3),ngenes,ncells)
@@ -91,7 +92,4 @@ rowData(s)
 colData(s) <- DataFrame(cell_id=1:ncells,
               cell_type=c(rep('tissue1',2),
                           rep('tissue2',ncells-2)))
-# slots be accessed directly
-s@colData  
-
 }

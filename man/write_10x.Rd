@@ -28,6 +28,9 @@ Use an object and write count and annotation files in 10x format
 }
 \examples{
 set.seed(1)
-s <- scNMFSet(matrix(stats::rpois(n=12,lambda=3),4,3))
+x <- matrix(rpois(n=12,lambda=3),4,3)
+rownames(x) <- 1:4
+colnames(x) <- 1:3
+s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
 write_10x(s,dir='.')
 }

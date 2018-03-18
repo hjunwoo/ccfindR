@@ -2,9 +2,7 @@
 % Please edit documentation in R/scNMF_class.R
 \name{coeff<-}
 \alias{coeff<-}
-\title{Modify coefficient matrices
- 
-Can be used to access and modify coefficient matrices}
+\title{Generics for coefficient matrix assignment}
 \usage{
 coeff(object) <- value
 }
@@ -15,13 +13,9 @@ coeff(object) <- value
 }
 \value{
 Input object with updated coefficient matrices
-
-Input object with updated coefficient matrices
 }
 \description{
-Modify coefficient matrices
- 
-Can be used to access and modify coefficient matrices
+Access and modify coefficient matrices
 }
 \examples{
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))

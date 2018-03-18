@@ -29,7 +29,7 @@ feature ("genes") in rows and cells (tagged by barcodes) in columns,
 produced by read alignment and counting pipelines. The count matrix and
 associated gene and cell annotation files are bundled into a main 
 object of class `scNMFSet`, which extends the
-`SingleCellExperiment` [class](http://dx.doi.org/10.18129/B9.bioc.SingleCellExperiment).
+`SingleCellExperiment` class [http://dx.doi.org/10.18129/B9.bioc.SingleCellExperiment)].
 Quality control for both cells and genes can be performed via filtering
 steps based on UMI counts and variance of expressions, respectively. 
 The NMF factorization is first performed for multiple values of 
@@ -103,7 +103,7 @@ cells present in the system viewed at varying resolution.
 
 We illustrate a typical workflow with a single-cell count data set
 generated from peripheral blood mononuclear cell (PBMC) 
-[data](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/).
+data [https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/].
 The particular data set used below was created by sampling from 5 
 purified immune cell subsets.
 
@@ -126,6 +126,8 @@ set.seed(1)
 mat <- matrix(rpois(n = 80, lambda = 2), nrow = 4, ncol = 20)
 ABC <- LETTERS[1:4]
 abc <- letters[1:20]
+rownames(mat) <- ABC
+colnames(mat) <- abc
 ```
 
 The main `S4` object containing data and subsequent analysis outcomes is of 
@@ -138,7 +140,7 @@ sc <- scNMFSet(count = mat)
 This class extends `SingleCellExperiment`
 [class](http://dx.doi.org/10.18129/B9.bioc.SingleCellExperiment), 
 adding extra slots for storing factorization outcomes.
-In particular, the slots `assays`, `rowData`, and `colData` slots of
+In particular, `assays`, `rowData`, and `colData` slots of
 `SingleCellExperiment` class are used to store RNA count matrix, 
 gene, and cell annotation data frames, respectively.
 In the simplest initialization above, the named argument `count` is
@@ -154,6 +156,8 @@ main slots. For instance, row and column names can be stored by
 genes <- as(ABC, 'DataFrame')
 rownames(genes) <- ABC
 cells <- as(abc, 'DataFrame')
+rownames(cells) <- abc
+sc <- scNMFSet(count=mat, rowData=genes, colData=cells)
 sc
 ```
 
@@ -363,7 +367,7 @@ each rank with different initial conditions and the solution with the
 highest evidence will be chosen. The object after a `vb_factorize` run 
 will have its `measure` slot filled:
 ```{r}
-head(measure(sb))
+measure(sb)
 ```
 
 Plotting the object displays the log evidence as a function of rank
@@ -396,7 +400,8 @@ the representative groups of genes for clusters are selected by the
 [@carmona-saez_etal]: genes are sorted for each cluster with decreasing 
 magnitudes of coefficient matrix elements, and first top members of the 
 list for which the magnitude is the actual maximum over all clusters are chosen.
-Based on the marker-metagene map in Fig. 8, we rename the clusters as follows:
+Based on the marker-metagene map in Fig. 6, we rename the clusters 1-5 
+as follows:
 ```{r}
 cell_type <- c('CD8+_T','Monocytes','B_cells','CD4+_T','NK')
 colnames(basis(sb)[[which(ranks(sb) == 5)]]) <- cell_type
@@ -428,7 +433,7 @@ plot_tree(tree, cex = 0.8, show.node.label = TRUE)
 
 The `build_tree` function returns a list containing the tree. The second 
 command above renames the label of terminal nodes by our cell type label. In 
-Fig. 9, the relative distance between clusters can be seed to be consistent 
+Fig. 9, the relative distance between clusters can be seen to be consistent 
 with the tSNE plot in Fig. 8.
 
 # References

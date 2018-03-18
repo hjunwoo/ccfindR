@@ -58,7 +58,9 @@ When run with multiple values of \code{ranks},
         contains quality measures of the ranks. The quality measure 
         \code{likelihood} is negative the KL distance of the fit to the 
         target. With \code{nrun > 1}, the likelihood is the maximum 
-        among all runs. The quality measure \code{dispersion} is the scalar
+        among all runs. 
+        
+        The quality measure \code{dispersion} is the scalar
         measure of how far the connectivity matrix is from 0, 1. With 
         increasing \code{nrun}, \code{dispersion} decreases from 1. 
         \code{nrun} should be chosen such that \code{dispersion} does not 
@@ -66,14 +68,12 @@ When run with multiple values of \code{ranks},
         With randomization, \code{count} matrix of \code{object} 
         is shuffled. 
         \code{nsmpl} can be used to average over multiple permutations. This 
-        averaging applies to each quality measure under a given rank. The 
-        randomized factorization is called by \code{\link{factorize_H0}} 
-        to update \code{object}.
+        averaging applies to each quality measure under a given rank.
 }
 \examples{
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
-s <- scNMFSet(x)
-s <- factorize(s,ranks=2:8)
+s <- scNMFSet(count=x)
+s <- factorize(s,ranks=2:8,nrun=5)
 plot(s)
 }

@@ -3,18 +3,24 @@
 \docType{methods}
 \name{coeff<-,scNMFSet-method}
 \alias{coeff<-,scNMFSet-method}
-\title{Coefficient matrix assignment}
+\title{Modify coefficient matrices}
 \usage{
 \S4method{coeff}{scNMFSet}(object) <- value
 }
 \arguments{
-\item{object}{Object containing coefficient matrices}
+\item{object}{Object of class \code{scNMFSet}}
 
-\item{value}{New coefficient matrices to be substituted}
+\item{value}{Coefficient matrix to be substituted}
 }
 \value{
-Object with coefficient matrix modified
+Input object with updated coefficient matrices
 }
 \description{
-Coefficient matrix assignment
+Can be used to access and modify coefficient matrices
+}
+\examples{
+s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+s <- vb_factorize(s, ranks=3)
+coeff(s)[[1]] <- apply(coeff(s)[[1]],1:2,round,digits=2)
+coeff(s)
 }

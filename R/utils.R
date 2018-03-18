@@ -15,7 +15,10 @@
 #' @param remove.zeros If \code{TRUE}, empty rows/columns are 
 #'        removed.
 #' @examples
-#' s <- scNMFSet(matrix(stats::rpois(n=12,lambda=3),4,3))
+#' library(S4Vectors)
+#' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+#' rowData(s) <- DataFrame(1:4)
+#' colData(s) <- DataFrame(1:3)
 #' write_10x(s,dir='.')
 #' s <- read_10x(dir='.')
 #' s
@@ -23,8 +26,7 @@
 #' @export
 #' @import SingleCellExperiment
 read_10x <- function(dir, count='matrix.mtx', genes='genes.tsv', 
-                     barcodes='barcodes.tsv', remove.zeros=TRUE, 
-                     scNMF=FALSE){
+                     barcodes='barcodes.tsv', remove.zeros=TRUE){
   
   if(!dir.exists(dir)) stop(cat('Input directory',dir,'does not exist\n'))
   count <- paste0(dir,'/',count)
@@ -64,15 +66,17 @@ read_10x <- function(dir, count='matrix.mtx', genes='genes.tsv',
 #' @param object \code{scNMFSet} object
 #' @param umi.min Minimum UMI count for cell filtering
 #' @param umi.max Maximum UMI count for cell filtering
-#' @param plot If \code{TRUE}, the UMI count distribution of all cells will 
-#'     be displayed. Cells selected are colored red.
+#' @param plot If \code{TRUE}, the UMI count distribution of all cells 
+#'   will be displayed. Cells selected are colored red.
+#' @param remove.zeros Remove rows/columns containing zeros only
 #' @return \code{scNMFSet} object with cells filtered.
 #' @examples
 #' set.seed(1)
 #' s <- scNMFSet(matrix(stats::rpois(n=1200,lambda=3),40,30))
 #' s <- filter_cells(s,umi.min=10^2.0,umi.max=10^2.1)
 #' @export
-filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE, remove.zeros=TRUE){
+filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE, 
+                         remove.zeros=TRUE){
   
   umi.count <- Matrix::colSums(counts(object))
   selected_cells <- umi.min <= umi.count & umi.count <= umi.max
@@ -92,7 +96,8 @@ filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE, remove.zeros
 
 #' Filter genes with quality control criteria
 #' 
-#' Remove low quality gene entries from object
+#' Select genes with high relative variance in count data for 
+#' further analysis
 #' 
 #' Takes as input \code{scNMFSet} object and scatterplot no. of cells 
 #' expressed versus VMR (variance-to-mean ratio)
@@ -102,7 +107,7 @@ filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE, remove.zeros
 #' @param object \code{scNMFSet} object.
 #' @param markers A vector containing marker genes to be selected. 
 #'    All rows in 
-#' \code{object@genes} that contain columns matching this set will 
+#' \code{rowData} that contain columns matching this set will 
 #'    be selected. 
 #' @param vmr.min Minimum variance-to-mean ratio for gene filtering.
 #' @param min.cells.expressed Minimum no. of cells expressed for gene 
@@ -228,26 +233,27 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
 #' For analysis purposes, it is sometimes useful to rescale integer count
 #' data into floats such that all cells have the same median counts. 
 #' This function will calculate the median of all UMI counts of cells (total
-#' number of RNAs derived from each cell). All count data are then rescale
+#' number of RNAs derived from each cell). All count data are then rescaled
 #' such that cells have uniform UMI count equal to the median. 
 #' 
 #' @param object \code{scNMFSet} object.
 #' @return \code{scNMFSet} object with normalized count data.
 #' @examples
+#' library(Matrix)
 #' set.seed(1)
-#' s <- scNMFSet(matrix(stats::rpois(n=1200,lambda=3),40,30))
-#' Matrix::colMeans(count(s))
+#' s <- scNMFSet(count=matrix(rpois(n=1200,lambda=3),40,30))
+#' colMeans(counts(s))
 #' s <- normalize_count(s)
-#' Matrix::colMeans(count(s))
+#' colMeans(counts(s))
 #' @export
 normalize_count <- function(object){
   
-  count <- object@count
-  umi.count <- colSums(count)
+  count <- counts(object)
+  umi.count <- Matrix::colSums(count)
   count <- t(t(count)/umi.count)
   med <- stats::median(umi.count)
   count <- count*med
-  count(object) <- count
+  counts(object) <- count
   object
 }
 
@@ -272,7 +278,7 @@ rowVars <- function(x, means){
 #' 
 #' Generate heatmap of metagenes derived from factorization of count data.
 #' 
-#' Wrapper for \code{\link[stats]{heatmap}} for displaying metagenes and
+#' Wrapper for \code{\link[stats]{heatmap}} to display metagenes and
 #' associated basis matrix element magnitudes. Factorization results inside
 #' an object specified by its rank value will be retrieved, and metagene
 #' sets identified from clusters.
@@ -280,9 +286,9 @@ rowVars <- function(x, means){
 #' @param object Object of class \code{scNMFSet}.
 #' @param rank Rank value for which the gene map is to be displayed. 
 #'   The object must contain the corresponding slot (one element of 
-#'        \code{object@basis[[k]]} for which \code{object@ranks[[k]]==rank}.
+#'        \code{basis(object)[[k]]} for which \code{ranks(object)[[k]]==rank}.
 #' @param markers Vector of gene names containing markers to be included 
-#'         in addition to the metagenes. All entries of \code{object@genes}
+#'         in addition to the metagenes. All entries of \code{rowData(object)}
 #'         matching them will be added to the metagene list.
 #' @param subtract.mean Process each rows of basis matrix \code{W} by 
 #'        standardization using the mean of elements within the row.
@@ -299,8 +305,9 @@ rowVars <- function(x, means){
 #'            
 #' @details If \code{object} contains multiple ranks, only the requested 
 #'   rank's basis matrix W will be displayed. The genes displayed in rows
-#'      are selected by "max" scheme 
-#'      [Carmona-Saez, BMC Bioinformatics (2006)]:
+#'      are selected by "max" scheme
+#'     [Carmona-Saez, BMC Bioinformatics (2006), 
+#'    \url{https://doi.org/10.1186/1471-2105-7-54}]:
 #'      for each cluster (\code{k in 1:ncol}), 
 #'      rows of W are sorted by decreasing order
 #'      of \code{W[,k]}. Marker genes for \code{k} are those among the top
@@ -310,7 +317,9 @@ rowVars <- function(x, means){
 #' @examples  
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-#' s <- scNMFSet(x)
+#' rownames(x) <- 1:10
+#' colnames(x) <- 1:100
+#' s <- scNMFSet(count=x,rowData=1:10, colData=1:100)
 #' s <- vb_factorize(s,ranks=2:5)
 #' plot(s)
 #' gene_map(s, rank=3)
@@ -360,7 +369,9 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' @examples
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-#' s <- scNMFSet(x)
+#' rownames(x) <- 1:10
+#' colnames(x) <- 1:100
+#' s <- scNMFSet(count=x,rowData=1:10,colData=1:100)
 #' s <- vb_factorize(s,ranks=2:5)
 #' plot(s)
 #' cell_map(s, rank=3)
@@ -398,7 +409,9 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' @examples
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-#' s <- scNMFSet(x)
+#' rownames(x) <- 1:10
+#' colnames(x) <- 1:100
+#' s <- scNMFSet(count=x,rowData=1:10,colData=1:100)
 #' s <- vb_factorize(s,ranks=2:5)
 #' meta_genes(s, rank=5)
 #' @export
@@ -408,7 +421,7 @@ meta_genes <- function(object, rank, basis.matrix=NULL,
   
   if(is.null(basis.matrix)){
     id <- which(ranks(object)==rank)
-    w <- basis(objects)[[id]]
+    w <- basis(object)[[id]]
     if(subtract.mean){
       if(log) w <- log10(w)
       w <- w - rowMeans(w)
@@ -449,9 +462,10 @@ gene_select <- function(w, markers = NULL, max.per.cluster = 10){
 
 #' Visualize clusters
 #' 
-#' Use tSNE to generate two-dimensional map of coefficient matrix
+#' Use tSNE to generate two-dimensional map of coefficient matrix.
 #' 
-#' Retrieve a coefficient matrix \code{H} from an object and use its elements
+#' It retrieves a coefficient matrix \code{H} 
+#' from an object and use its elements
 #' to assign each cell into clusters. 
 #' t-Distributed Stochastic Neighbor Embedding (t-SNE; 
 #' \url{https://lvdmaaten.github.io/tsne/}) is used to visualize the 
@@ -468,7 +482,9 @@ gene_select <- function(w, markers = NULL, max.per.cluster = 10){
 #' @examples
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
-#' s <- scNMFSet(x)
+#' rownames(x) <- 1:10
+#' colnames(x) <- 1:170
+#' s <- scNMFSet(count=x,rowData=1:10,colData=1:170)
 #' s <- vb_factorize(s,ranks=2:5)
 #' visualize_clusters(s,rank=5)
 #' @export
@@ -531,7 +547,7 @@ visualize_clusters <- function(object, rank, verbose=FALSE, cex=1,
 #'   \code{w} (basis matrix, \code{nfeatures x rank}),
 #'         \code{h} (coefficient matrix, \code{rank x ncells}, where 
 #'         \code{ncells}
-#'         is equal to \code{n}, the sum of \code{nsamples}, and 
+#'         is equal to \code{n}, the sum of \code{nsamples}), and 
 #'         \code{x}, a matrix of Poisson deviates with mean \code{W x H}.
 #'         If \code{generate.factors = FALSE}, only the count matrix 
 #'         \code{x} is in the list.
@@ -607,7 +623,7 @@ simulate_data <- function(nfeatures, nsamples, generate.factors=FALSE,
 #' @examples
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
-#' s <- scNMFSet(x$x)
+#' s <- scNMFSet(count=x$x)
 #' s <- vb_factorize(s,ranks=2:8,nrun=5)
 #' plot(s)  
 #' @export
@@ -659,7 +675,10 @@ find_cluster <- function(object, rank){
 #' @return \code{NULL}
 #' @examples
 #' set.seed(1)
-#' s <- scNMFSet(matrix(stats::rpois(n=12,lambda=3),4,3))
+#' x <- matrix(rpois(n=12,lambda=3),4,3)
+#' rownames(x) <- 1:4
+#' colnames(x) <- 1:3
+#' s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
 #' write_10x(s,dir='.')
 #' @export
 write_10x <- function(object, dir, count='matrix.mtx', genes='genes.tsv', 
@@ -668,12 +687,14 @@ write_10x <- function(object, dir, count='matrix.mtx', genes='genes.tsv',
   count <- paste0(dir,'/',count)
   genes <- paste0(dir,'/',genes)
   barcodes <- paste0(dir,'/',barcodes)
-  Matrix::writeMM(object@count,file=count)
-  g <- data.frame(object@genes)
-  rownames(g) <- rownames(object@genes)
+  x <- counts(object)
+  x <- as(x,'sparseMatrix')
+  Matrix::writeMM(as(x,'Matrix'),file=count)
+  g <- rowData(object)
+  rownames(g) <- rownames(rowData(object))
   utils::write.table(g,file=genes,col.names=FALSE,quote=quote,sep=' ',
               row.names=FALSE)
-  utils::write.table(object@cells,file=barcodes,col.names=FALSE,
+  utils::write.table(colData(object),file=barcodes,col.names=FALSE,
                      quote=FALSE,sep=' ',row.names=FALSE)
   return(invisible(object))
 }
@@ -690,16 +711,16 @@ write_10x <- function(object, dir, count='matrix.mtx', genes='genes.tsv',
 #' @examples
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
-#' s <- scNMFSet(x$x)
+#' s <- scNMFSet(count=x$x)
 #' s <- vb_factorize(s,ranks=2:8,nrun=5)
 #' cid <- cluster_id(s, rank=5)
 #' table(cid)
 #' @export
 cluster_id <- function(object, rank=2){
   
-  id <- which(object@ranks==rank)
-  h <- t(object@coeff[[id]])
+  id <- which(ranks(object)==rank)
+  h <- t(coeff(object)[[id]])
   cid <- apply(h,1,function(x){which(x==max(x))})
-  names(cid) <- rownames(object@cells)
+  names(cid) <- colnames(object)
   cid
 }

@@ -14,8 +14,10 @@ filter_cells(object, umi.min = 0, umi.max = Inf, plot = TRUE,
 
 \item{umi.max}{Maximum UMI count for cell filtering}
 
-\item{plot}{If \code{TRUE}, the UMI count distribution of all cells will 
-be displayed. Cells selected are colored red.}
+\item{plot}{If \code{TRUE}, the UMI count distribution of all cells 
+will be displayed. Cells selected are colored red.}
+
+\item{remove.zeros}{Remove rows/columns containing zeros only}
 }
 \value{
 \code{scNMFSet} object with cells filtered.

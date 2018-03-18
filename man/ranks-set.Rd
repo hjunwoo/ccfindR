@@ -2,9 +2,7 @@
 % Please edit documentation in R/scNMF_class.R
 \name{ranks<-}
 \alias{ranks<-}
-\title{Modify ranks
- 
-Can be used to access and modify ranks}
+\title{Generics for ranks assignment}
 \usage{
 ranks(object) <- value
 }
@@ -15,13 +13,9 @@ ranks(object) <- value
 }
 \value{
 Input object with updated ranks
-
-Input object with updated ranks
 }
 \description{
-Modify ranks
- 
-Can be used to access and modify ranks
+Replace \code{ranks} slot of \code{scNMFSet} object
 }
 \examples{
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))

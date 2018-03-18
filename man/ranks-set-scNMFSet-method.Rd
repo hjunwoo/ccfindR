@@ -3,18 +3,24 @@
 \docType{methods}
 \name{ranks<-,scNMFSet-method}
 \alias{ranks<-,scNMFSet-method}
-\title{Rank values assignment}
+\title{Modify ranks}
 \usage{
 \S4method{ranks}{scNMFSet}(object) <- value
 }
 \arguments{
-\item{object}{Object containing ranks}
+\item{object}{Object of class \code{scNMFSet}}
 
-\item{value}{New rank vector to be substituted}
+\item{value}{Rank values (vector) to be substituted}
 }
 \value{
-Object with rank vector modified
+Input object with updated ranks
 }
 \description{
-Rank values assignment
+Replace \code{ranks} slot of \code{scNMFSet} object
+}
+\examples{
+s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
+s <- vb_factorize(s, ranks=2:3)
+ranks(s) <- c('two','three')
+ranks(s)
 }

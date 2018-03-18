@@ -77,50 +77,6 @@ cophenet <- function(conav, nc){
 
 }
 
-#' Maximum likelihood factorization with randomization
-#' 
-#' Updates \code{scNMFSet object} by performing factorizations with
-#' shuffled data matrices.
-#' 
-#' @param object \code{scNMFSet} object containing 
-#'   count matrix and factorization results
-#' @param ... Other parameters to \code{factorize()}.
-#' @return Input \code{object} with slot \code{dmeasure} containing 
-#'        differences in quality measures between those for original data
-#'        and H0 results. 
-#'        
-#' @details This function updates the main object of class \code{scNMFSet} 
-#'          by performing factorizations of randomized count data. It is assumed
-#'          that main factorization of the original data has already been 
-#'          performed. The same set of rank values in \code{ranks} slot of 
-#'          \code{object} is used for factorization. The function 
-#'          \code{factorize} 
-#'          is then called with appropriate parameters. The resulting quality
-#'          measures are stored in the slot
-#'          \code{dmeasure}, a data frame with columns \code{likelihood} 
-#'          and \code{dispersion}.
-#' @examples
-#' set.seed(1)
-#' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
-#' s <- scNMFSet(x)
-#' s <- factorize(s,ranks=2:8)
-#' s <- factorize_H0(s)
-#' plot(s)
-#' @export
-factorize_H0 <- function(object, ...){
-                        
-  m1 <- measure(object)
-  ranks <- ranks(object)
-  h0 <- object
-  h0 <- factorize(h0, ranks = ranks, randomize = TRUE, ...)
-  m0 <- measure(h0)
-  dm <- data.frame(ranks=ranks,likelihood=m0$likelihood,
-     r_se=m0$r_se, dispersion=m0$dispersion, d_se=m0$d_se,
-     cophenetic=m0$cophenetic, c_se=m0$c_se)
-  dmeasure(object) <- dm
-  object
-}
-
 #' Maximum likelihood factorization
 #' 
 #' Performs single or multiple rank NMF factorization of count matrix using 
@@ -159,7 +115,9 @@ factorize_H0 <- function(object, ...){
 #'         contains quality measures of the ranks. The quality measure 
 #'         \code{likelihood} is negative the KL distance of the fit to the 
 #'         target. With \code{nrun > 1}, the likelihood is the maximum 
-#'         among all runs. The quality measure \code{dispersion} is the scalar
+#'         among all runs. 
+#'         
+#'         The quality measure \code{dispersion} is the scalar
 #'         measure of how far the connectivity matrix is from 0, 1. With 
 #'         increasing \code{nrun}, \code{dispersion} decreases from 1. 
 #'         \code{nrun} should be chosen such that \code{dispersion} does not 
@@ -167,19 +125,18 @@ factorize_H0 <- function(object, ...){
 #'         With randomization, \code{count} matrix of \code{object} 
 #'         is shuffled. 
 #'         \code{nsmpl} can be used to average over multiple permutations. This 
-#'         averaging applies to each quality measure under a given rank. The 
-#'         randomized factorization is called by \code{\link{factorize_H0}} 
-#'         to update \code{object}.
+#'         averaging applies to each quality measure under a given rank. 
 #' @examples
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
-#' s <- scNMFSet(x)
-#' s <- factorize(s,ranks=2:8)
+#' s <- scNMFSet(count=x)
+#' s <- factorize(s,ranks=2:8,nrun=5)
 #' plot(s)
 #' @export
-factorize <- function(object, ranks=2, nrun=20, randomize=FALSE, nsmpl=1, 
-      verbose=2, progress.bar=TRUE, Itmax=10000, ncnn.step=40, 
-      criterion='likelihood', Tol=1e-5){
+factorize <- function(object, ranks=2, nrun=20, randomize=FALSE, 
+                      nsmpl=1, verbose=2, progress.bar=TRUE, 
+                      Itmax=10000, ncnn.step=40, criterion='likelihood', 
+                      Tol=1e-5){
   
   mat <- counts(object)  
   
@@ -296,9 +253,6 @@ factorize <- function(object, ranks=2, nrun=20, randomize=FALSE, nsmpl=1,
                     ', Mean(dispersion) =',dave[irank],
                     ', Mean(cophenetic) =',coav[irank],'\n\n')
   }
-#  ranks(object) <- ranks
-#  basis(object) <- wdat
-#  coeff(object) <- hdat
   object@ranks <- ranks
   object@basis <- wdat
   object@coeff <- hdat

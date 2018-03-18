@@ -13,7 +13,7 @@ filter_genes(object, markers = NULL, vmr.min = 0, min.cells.expressed = 0,
 
 \item{markers}{A vector containing marker genes to be selected. 
    All rows in 
-\code{object@genes} that contain columns matching this set will 
+\code{rowData} that contain columns matching this set will 
    be selected.}
 
 \item{vmr.min}{Minimum variance-to-mean ratio for gene filtering.}
@@ -43,7 +43,8 @@ Progress bar will be displayed unless \code{progress.bar=FALSE}.}
 Object of class \code{scNMFSet}.
 }
 \description{
-Remove low quality gene entries from object
+Select genes with high relative variance in count data for 
+further analysis
 }
 \details{
 Takes as input \code{scNMFSet} object and scatterplot no. of cells 

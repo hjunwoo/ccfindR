@@ -9,7 +9,7 @@ scNMFSet(count = NULL, ..., remove.zeros = TRUE)
 \arguments{
 \item{count}{Count matrix}
 
-\item{...}{Other parameters \link{\code{SingleCellExperiment}}}
+\item{...}{Other parameters of \code{\link{SingleCellExperiment}}}
 
 \item{remove.zeros}{Remove empty rows and columns}
 }
@@ -17,5 +17,10 @@ scNMFSet(count = NULL, ..., remove.zeros = TRUE)
 Object of class \code{scNMFSet}.
 }
 \description{
-Object derived from \link{\code{SingleCellExperiment}}
+Object derived from \code{\link{SingleCellExperiment}}
+}
+\examples{
+count <- matrix(rpois(n=12,lambda=2),4,3)
+s <- scNMFSet(count=count)
+s
 }
