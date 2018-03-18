@@ -1,5 +1,5 @@
 Package: ccfindR
-Version: 0.99-0
+Version: 0.99-1
 Date: 2018-03-015
 Title: Cancer Clone Finder - R package
 Authors@R: c(person('Jun','Woo',role='cre',email='jwoo@umn.edu'),
