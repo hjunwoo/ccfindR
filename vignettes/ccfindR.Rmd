@@ -209,14 +209,14 @@ sc2
 We provide two streamlined functions each for cell and gene filtering as 
 shown below:
 ```{r, cache=T, fig.width=4, fig.height=4,fig.cap='Quality control filtering of cells. Histogram of UMI counts is shown. Cells can be selected (red) by setting lower and upper thresholds of the UMI count.'}
-sc <- filter_cells(sc, umi.min = 10^2.8, umi.max = 10^3.6)
+sc <- filter_cells(sc, umi.min = 10^2.6, umi.max = 10^3.4)
 ```
 
 ```{r, cache=T, fig.width=4, fig.height=4, fig.cap='Selection of genes for clustering. The scatter plot shows distributions of expression variance to mean ratio (VMR) and the number of cells expressed. Minimum VMR and a range of cell number can be set to select genes (red). Symbols in orange are marker genes provided as input, selected irrespective of expression variance.'}
 markers <- c('CD4','CD8A','CD8B','CD19','CD3G','CD3D',
              'CD3Z','CD14')
-sc2 <- filter_genes(sc, markers = markers, vmr.min = 2, 
-            min.cells.expressed = 100, rescue.genes = FALSE)
+sc0 <- filter_genes(sc, markers = markers, vmr.min = 1.5, 
+            min.cells.expressed = 50, rescue.genes = FALSE)
 ```
 
 The function `filter_cells()` plots histogram of UMI counts for all cells 
@@ -240,10 +240,9 @@ are expressed in distinguishable fasion. The selection of genes by `filter_genes
 will be set as the union of threshold-based group and those with such 
 nonzero-count modes by setting `rescue.genes = TRUE` (default):
 ```{r, cache=T, eval=T,echo=T, fig.width=4, fig.height=4, fig.cap='Additional selection of genes with modes at nonzero counts. Symbols in blue represent genes rescued.'}
-sc_rescue <- filter_genes(sc, markers = markers, vmr.min = 2, min.cells.expressed = 100,
+sc_rescue <- filter_genes(sc, markers = markers, vmr.min = 1.5, min.cells.expressed = 50,
                           rescue.genes = TRUE, progress.bar = FALSE)
 ```
-
 This "gene rescue" scan will take some time and a progress bar is 
 displayed if `progress.bar = TRUE`.
 
@@ -321,7 +320,7 @@ or the rank $r$, must be estimated. The examples above used a single
 rank value. If the parameter `ranks` is a vector, the set of inferences will 
 be repeated for each rank value. 
 ```{r, cache=T}
-sc <- factorize(sc, ranks = 3:8, nrun = 5, verbose = 1, progress.bar = FALSE)
+sc <- factorize(sc, ranks = 3:7, nrun = 5, verbose = 1, progress.bar = FALSE)
 ```
 
 Note that `nrun` parameter above is set to a small value for illustration. 
@@ -359,7 +358,7 @@ By default, hyperparameters of priors are also updated after
 `hyper.update.n0` steps.
 As in maximum likelihood, multiple ranks can be specified:
 ```{r, cache=T}
-sb <- vb_factorize(sb, ranks = 2:8, verbose = 1, nrun = 5, progress.bar = FALSE)
+sb <- vb_factorize(sb, ranks = 2:7, nrun = 5, verbose = 1, Tol = 5e-4, progress.bar = FALSE)
 ```
 
 With `nrun` larger than 1, multiple inferences will be performed for 
@@ -403,7 +402,7 @@ list for which the magnitude is the actual maximum over all clusters are chosen.
 Based on the marker-metagene map in Fig. 6, we rename the clusters 1-5 
 as follows:
 ```{r}
-cell_type <- c('CD8+_T','Monocytes','B_cells','CD4+_T','NK')
+cell_type <- c('NK','B_cell','Monocytes','CD4+_T','CD8+_T')
 colnames(basis(sb)[[which(ranks(sb) == 5)]]) <- cell_type
 rownames(coeff(sb)[[which(ranks(sb) == 5)]]) <- cell_type
 ```
