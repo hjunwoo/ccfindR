@@ -427,7 +427,10 @@ meta_genes <- function(object, rank, basis.matrix=NULL,
       w <- w - rowMeans(w)
       if(log) w <- 10^w
     }
-  } else w <- basis.matrix
+  } else{
+    w <- basis.matrix
+    rank <- ncol(w)
+  }
   if(!is.null(gene_names)) rownames(w) <- gene_names
   nmax <- min(max.per.cluster, nrow(w))
   select <- vector('list',rank)

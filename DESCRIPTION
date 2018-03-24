@@ -1,5 +1,5 @@
 Package: ccfindR
-Version: 0.99.31
+Version: 0.99.32
 Date: 2018-03-015
 Title: Cancer Clone Finder - R package
 Authors@R: c(person('Jun','Woo',role='cre',email='jwoo@umn.edu'),
@@ -26,8 +26,8 @@ biocViews: Transcriptomics,
            Bayesian, 
            Clustering
 Description: A collection of tools for cancer single cell RNA-seq analysis. 
-    Cell clustering and feature gene selection analysis employ Maximum 
-    likelihood and Bayesian Non-negative matrix factorization algorithm. 
+    Cell clustering and feature gene selection analysis employ maximum 
+    likelihood and Bayesian non-negative matrix factorization algorithm. 
     Input data set consists of RNA count matrix, gene, and cell bar code 
     annotations.  Analysis outputs are factor matrices for multiple ranks, 
     quality measures (maximum likelihood) or evidence (Bayesian) with 
