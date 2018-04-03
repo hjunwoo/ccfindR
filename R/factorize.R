@@ -66,12 +66,12 @@ dispersion <- function(cnn,nc){
 
 }
 
-cophenet <- function(conav, nc){
+cophenet <- function(conav, nc, method='average'){
   
   tmp <- matrix(0,nrow=nc,ncol=nc)
   tmp[lower.tri(tmp)] <- 1-conav
   d <- stats::as.dist(tmp)
-  h <- stats::hclust(d)
+  h <- stats::hclust(d, method=method)
   coph <- stats::cophenetic(h)
   stats::cor(d,coph)
 
@@ -105,6 +105,8 @@ cophenet <- function(conav, nc){
 #'        changes in likelihood is below tolerance \code{Tol}. If 
 #'        \code{criterion = 'connectivity'}, iteration stops when connectivity 
 #'        matrix does not change for at least \code{ncnn.step} steps.
+#' @param linkage Method to be sent to \code{hclust} in 
+#'        calculating cophenetic correlation. 
 #' @param Tol Tolerance for checking convergence with 
 #'       \code{criterion = 'likelihood'}.
 #'        
@@ -135,8 +137,8 @@ cophenet <- function(conav, nc){
 #' @export
 factorize <- function(object, ranks=2, nrun=20, randomize=FALSE, 
                       nsmpl=1, verbose=2, progress.bar=TRUE, 
-                      Itmax=10000, ncnn.step=40, criterion='likelihood', 
-                      Tol=1e-5){
+                      Itmax=10000, ncnn.step=40, criterion='likelihood',
+                      linkage='average', Tol=1e-5){
   
   mat <- counts(object)  
   
@@ -218,7 +220,7 @@ factorize <- function(object, ranks=2, nrun=20, randomize=FALSE,
         }
       }
       if(verbose == 1 & progress.bar) close(pb)
-      coph <- cophenet(conav/nrun,ncol)
+      coph <- cophenet(conav/nrun,ncol, method=linkage)
       if(verbose >= 1) cat('Sample#',ismpl,': Max(likelihood) =',rmax,
                 ', dispersion =',disp,', cophenetic =',coph,'\n')
       if(ismpl==1){

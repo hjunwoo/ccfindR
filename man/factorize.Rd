@@ -6,7 +6,7 @@
 \usage{
 factorize(object, ranks = 2, nrun = 20, randomize = FALSE, nsmpl = 1,
   verbose = 2, progress.bar = TRUE, Itmax = 10000, ncnn.step = 40,
-  criterion = "likelihood", Tol = 1e-05)
+  criterion = "likelihood", linkage = "average", Tol = 1e-05)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object containing count matrix.}
@@ -37,6 +37,9 @@ to achieve convergence.}
 changes in likelihood is below tolerance \code{Tol}. If 
 \code{criterion = 'connectivity'}, iteration stops when connectivity 
 matrix does not change for at least \code{ncnn.step} steps.}
+
+\item{linkage}{Method to be sent to \code{hclust} in 
+calculating cophenetic correlation.}
 
 \item{Tol}{Tolerance for checking convergence with 
 \code{criterion = 'likelihood'}.}
