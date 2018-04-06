@@ -18,9 +18,9 @@ Object of class \code{scNMFSet}
 }
 \description{
 \code{S4} class derived from \code{\link{SingleCellExperiment}}
-that can store single-cell count matrix, 
-gene and cell annotation data frames, and factorization factors as well 
-as quality measures for rank determination.
+that can store single-cell count matrix, gene and cell annotation 
+data frames, and factorization factors as well as quality measures 
+for rank determination.
 }
 \section{Methods (by generic)}{
 \itemize{
@@ -66,11 +66,12 @@ not explicitly used.}
 \examples{
 library(S4Vectors)
 # toy matrix
-ngenes <- 8; ncells <- 5
+ngenes <- 8 
+ncells <- 5
 mat <- matrix(rpois(n=ngenes*ncells,lambda=3),ngenes,ncells)
 
-abc <- letters[1:ngenes]
-ABC <- LETTERS[1:ncells] 
+abc <- letters[seq_len(ngenes)]
+ABC <- LETTERS[seq_len(ncells)] 
 genes <- DataFrame(gene_id=abc)
 cells <- DataFrame(cell_id=ABC)
 rownames(mat) <- rownames(genes) <- abc
@@ -89,7 +90,8 @@ dim(s)
 rowData(s)
 
 # modify slots
-colData(s) <- DataFrame(cell_id=1:ncells,
+colData(s) <- DataFrame(cell_id=seq_len(ncells),
               cell_type=c(rep('tissue1',2),
                           rep('tissue2',ncells-2)))
+colData(s)
 }

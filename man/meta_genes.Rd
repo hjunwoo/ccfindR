@@ -35,9 +35,9 @@ Retrieve a basis matrix from an object and find metagenes.
 \examples{
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-rownames(x) <- 1:10
-colnames(x) <- 1:100
-s <- scNMFSet(count=x,rowData=1:10,colData=1:100)
-s <- vb_factorize(s,ranks=2:5)
+rownames(x) <- seq_len(10)
+colnames(x) <- seq_len(100)
+s <- scNMFSet(count=x,rowData=seq_len(10),colData=seq_len(100))
+s <- vb_factorize(s,ranks=seq(2,5))
 meta_genes(s, rank=5)
 }

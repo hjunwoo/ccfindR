@@ -30,9 +30,9 @@ nmf_updateR <- function(x,w,h,n,m,r, prior=FALSE, gamma.a, gamma.b){
 init <- function(nrow,ncol,mat,rank,max=1.0){
   w <- matrix(stats::runif(n=nrow*rank),nrow=nrow,ncol=rank)
   rownames(w) <- rownames(mat)
-  colnames(w) <- 1:rank
+  colnames(w) <- seq_len(rank)
   h <- matrix(stats::runif(n=rank*ncol),nrow=rank,ncol=ncol)
-  rownames(h) <- 1:rank
+  rownames(h) <- seq_len(rank)
   colnames(h) <- colnames(mat)
   list(ew=w,eh=h)
 }
@@ -49,11 +49,10 @@ likelihood <- function(mat,w,h){
 
 connectivity <- function(h){
 
-# cid <- apply(h,2,function(x){which(x==max(x))})
-  ncol <- dim(h)[2]
+  ncol <- ncol(h)
   cid <- c()
-# for(j in 1:ncol) cid <- c(cid, which(h[,j]==max(h[,j])))
-  for(j in 1:ncol) cid <- c(cid, which(h[,j]==max(h[,j]))[1])
+  for(j in seq_len(ncol))
+    cid <- c(cid, which.max(h[,j])[1])
   cnn <- outer(cid,cid,'==')
   t(cnn)[lower.tri(t(cnn))]
 
@@ -132,7 +131,7 @@ cophenet <- function(conav, nc, method='average'){
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
 #' s <- scNMFSet(count=x)
-#' s <- factorize(s,ranks=2:8,nrun=5)
+#' s <- factorize(s,ranks=seq(2,8),nrun=5)
 #' plot(s)
 #' @export
 factorize <- function(object, ranks=2, nrun=20, randomize=FALSE, 
@@ -159,20 +158,20 @@ factorize <- function(object, ranks=2, nrun=20, randomize=FALSE,
   rave <- dave <- coav <- rste <- cste <- dste <- rep(0,nrank)
   if(randomize) mat0 <- mat
   
-  for(irank in 1:nrank){
+  for(irank in seq_len(nrank)){
     
     rank <- ranks[irank]
     if(verbose > 0) cat('Rank ',rank,'\n',sep='')
     
-    for(ismpl in 1:nsmpl){
+    for(ismpl in seq_len(nsmpl)){
       
       conav <- rep(0,npair)
       if(randomize) mat <- apply(mat0,2,
-                     function(x){sample(x,size=length(x),replace=FALSE)})
+        function(x){sample(x,size=length(x),replace=FALSE)})
       if(verbose == 1 & progress.bar) 
         pb <- utils::txtProgressBar(style = 3)
       rmax <- -Inf
-      for(irun in 1:nrun){
+      for(irun in seq_len(nrun)){
       
         if(verbose >=2 ){
           if(randomize)
@@ -184,8 +183,9 @@ factorize <- function(object, ranks=2, nrun=20, randomize=FALSE,
         
         wh <- init(nrow,ncol,mat,rank)
         
-        zstep <- 0; lkold <- -Inf
-        for(it in 1:Itmax){
+        zstep <- 0
+        lkold <- -Inf
+        for(it in seq_len(Itmax)){
           wh <- nmf_updateR(mat,wh$ew,wh$eh,nrow,ncol,rank)
           lk0 <- likelihood(mat,wh$ew,wh$eh)
           if(criterion=='connectivity'){

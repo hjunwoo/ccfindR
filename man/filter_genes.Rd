@@ -5,8 +5,8 @@
 \title{Filter genes with quality control criteria}
 \usage{
 filter_genes(object, markers = NULL, vmr.min = 0, min.cells.expressed = 0,
-  max.cells.expressed = Inf, plot = TRUE, rescue.genes = TRUE,
-  progress.bar = TRUE, save.memory = FALSE, cex = 0.5)
+  max.cells.expressed = Inf, rescue.genes = TRUE, progress.bar = TRUE,
+  save.memory = FALSE, plot = TRUE, cex = 0.5)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object.}
@@ -24,9 +24,6 @@ filtering.}
 \item{max.cells.expressed}{Maximum no. of cells expressed for gene 
 filtering.}
 
-\item{plot}{Plot the distribution of no. of cells expressed vs.
-VMR.}
-
 \item{rescue.genes}{Selected additional genes whose (non-zero)
 count distributions have at least one mode.}
 
@@ -36,6 +33,8 @@ calculation with \code{save.memory = TRUE}.}
 \item{save.memory}{For a very large number of cells, calculate VMR 
 row by row while avoiding calls to \code{as.matrix()}.
 Progress bar will be displayed unless \code{progress.bar=FALSE}.}
+
+\item{plot}{Plot the distribution of no. of cells expressed vs. VMR.}
 
 \item{cex}{Symbol size for each gene in the plot.}
 }

@@ -18,8 +18,8 @@ Gene annotation accessor
 }
 \examples{
 x <- matrix(rpois(n=12,lambda=3),4,3)
-rownames(x) <- 1:4
-colnames(x) <- 1:3
-s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
+rownames(x) <- seq_len(4)
+colnames(x) <- seq_len(3)
+s <- scNMFSet(count=x,rowData=seq_len(4),colData=seq_len(3))
 rowData(s) 
 }

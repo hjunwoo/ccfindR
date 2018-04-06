@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{cell_map}
 \alias{cell_map}
-\title{Plot heatmap of clustering coefficnet matrix}
+\title{Plot heatmap of clustering coefficient matrix}
 \usage{
 cell_map(object, rank, main = "Cells", ...)
 }
@@ -11,8 +11,8 @@ cell_map(object, rank, main = "Cells", ...)
 
 \item{rank}{Rank value for which the cell map is to be displayed. 
 The object must contain the corresponding slot: one element of 
-          \code{object@coeff[[k]]} for which 
-          \code{object@ranks[[k]]==rank}.}
+          \code{coeff(object)[[k]]} for which 
+          \code{ranks(object)[[k]]==rank}.}
 
 \item{main}{Title of plot.}
 
@@ -31,10 +31,10 @@ and generate heatmap of its elements.
 \examples{
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-rownames(x) <- 1:10
-colnames(x) <- 1:100
-s <- scNMFSet(count=x,rowData=1:10,colData=1:100)
-s <- vb_factorize(s,ranks=2:5)
+rownames(x) <- seq_len(10)
+colnames(x) <- seq_len(100)
+s <- scNMFSet(count=x,rowData=seq_len(10),colData=seq_len(100))
+s <- vb_factorize(s,ranks=seq(2,5))
 plot(s)
 cell_map(s, rank=3)
 }

@@ -38,9 +38,9 @@ in 2D. Also plotted is the distribution of cell counts for all clusters.
 \examples{
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
-rownames(x) <- 1:10
-colnames(x) <- 1:170
-s <- scNMFSet(count=x,rowData=1:10,colData=1:170)
-s <- vb_factorize(s,ranks=2:5)
+rownames(x) <- seq_len(10)
+colnames(x) <- seq_len(170)
+s <- scNMFSet(count=x,rowData=seq_len(10),colData=seq_len(170))
+s <- vb_factorize(s,ranks=seq(2,5))
 visualize_clusters(s,rank=5)
 }

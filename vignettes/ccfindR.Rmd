@@ -44,8 +44,8 @@ The NMF approach offers a means to identify cell subtypes and classify
 individual cells into these clusters based on clustering using 
 expression counts. In contrast to alternatives such as principal 
 component analyses [@hastie_etal], NMF leverages the non-negative nature 
-of count data and factorizes the data matrix $X$ into two matrices $W$ and 
-$H$ [@lee_seung]:
+of count data and factorizes the data matrix $\sf X$ into two matrices 
+$\sf W$ and $\sf H$ [@lee_seung]:
 
 $$\sf{X} \sim {\sf W}{\sf H}.$$
 If $\sf X$ is a $p\times n$ matrix ($p$ genes and $n$ cells), 
@@ -85,8 +85,8 @@ to determine the rank is to evaluate the
 factorization quality measures (and optionally compare with those from 
 randomized data).
 The Bayesian formulation of NMF algorithm [@cemgil] 
-incorporates priors for factored matrix elements $W$ and $H$ modeled
-by gamma distributions. Inference can be combined with hyperparameter
+incorporates priors for factored matrix elements $\sf W$ and $\sf H$ 
+modeled by gamma distributions. Inference can be combined with hyperparameter
 update to optimize the evidence (conditional probability of data under
 hyperparameters and rank), which provides a statistically well-controlled
 means to determine the optimal rank describing data.
@@ -120,7 +120,7 @@ library(ccfindR)
 ## 2. Data input
 
 The input data can be a simple matrix:
-```{r, eval=T,echo=T}
+```{r, echo=T}
 # A toy matrix for count data
 set.seed(1)
 mat <- matrix(rpois(n = 80, lambda = 2), nrow = 4, ncol = 20)
@@ -132,7 +132,7 @@ colnames(mat) <- abc
 
 The main `S4` object containing data and subsequent analysis outcomes is of 
 class `scNMFSet`, created by
-```{r, eval=T,echo=T}
+```{r, echo=T}
 # create scNMFSet object
 sc <- scNMFSet(count = mat)
 ```
@@ -145,27 +145,29 @@ In particular, `assays`, `rowData`, and `colData` slots of
 gene, and cell annotation data frames, respectively.
 In the simplest initialization above, the named argument `count` is
 used as the count matrix and is equivalent to
-```{r, eval=T,echo=T}
+```{r, echo=T}
 # create scNMFSet object
 sc <- scNMFSet(assays = list(counts = mat))
 ```
-See `singleCellExperiment` documentations for more details of these
+See `SingleCellExperiment` documentations for more details of these
 main slots. For instance, row and column names can be stored by
-```{r, eval=T}
+```{r}
 # set row and column names
+suppressMessages(library(S4Vectors))
 genes <- as(ABC, 'DataFrame')
 rownames(genes) <- ABC
 cells <- as(abc, 'DataFrame')
 rownames(cells) <- abc
-sc <- scNMFSet(count=mat, rowData=genes, colData=cells)
+sc <- scNMFSet(count = mat, rowData = genes, colData = cells)
 sc
 ```
 
 Alternatively, sparse matrix format (of class `dgCMatrix`) can be used. 
 One may read a `MatrixMarket` format file directly:
-```{r, eval=T}
+```{r}
 # read sparse matrix
-mat <- Matrix::readMM('pbmc/matrix.mtx')
+dir <- system.file('extdata', package = 'ccfindR')
+mat <- Matrix::readMM(paste0(dir,'/matrix.mtx'))
 sc <- scNMFSet(count = mat, rowData = as(1:nrow(mat), 'DataFrame'),
                colData = as(1:ncol(mat), 'DataFrame'))
 sc
@@ -174,19 +176,20 @@ The number of rows in `assays$counts` and `rowData`, the number of columns
 in `assays$counts` and rows in `colData` must match.
 
 The gene and barcode meta-data and count files resulting from 10x Genomics'
-[Cell Ranger pipeline]
+Cell Ranger pipeline
 (https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger) can also be read:
-```{r, eval=T}
+```{r}
 # read 10x files
-sc <- read_10x(dir = 'pbmc', count = 'matrix.mtx', 
-               genes = 'genes.tsv', barcodes = 'barcodes.tsv')
+sc <- read_10x(dir = dir)
 sc
 ```
 
-The parameter `dir` is the directory containing the files. File names shown 
-above are defaults and can be omitted. The function returns an `scNMFSet` 
-object. By default, any row or column entirely consisting of zeros in `count` 
-and the corresponding elements in `genes` and `cells` slots will be removed. 
+The parameter `dir` is the directory containing the files. 
+Expected file names are `matrix.mtx`, `genes.tsv`, 
+and `barcodes.tsv` for the count, gene, and
+cell annotations, respectively. The function returns an `scNMFSet` object. 
+By default, any row or column entirely consisting of zeros in `counts` and the
+corresponding elements in `rowData` and `colData` slots will be removed. 
 This feature can be turned off by `remove.zeros = FALSE`.
 
 ## 3. Quality control
@@ -236,13 +239,14 @@ Gene-filtering can also be augmented by scanning for those genes whose count
 distributions among cells are non-trivial: most have zero count as its 
 maximum; some have one or more distinct peaks at nonzero count values. 
 These may signify the existence of groups of cells in which the genes 
-are expressed in distinguishable fasion. The selection of genes by `filter_genes()` 
+are expressed in distinguishable fashion. The selection of genes by `filter_genes()` 
 will be set as the union of threshold-based group and those with such 
 nonzero-count modes by setting `rescue.genes = TRUE` (default):
-```{r, cache=T, eval=T,echo=T, fig.width=4, fig.height=4, fig.cap='Additional selection of genes with modes at nonzero counts. Symbols in blue represent genes rescued.'}
+```{r, cache=T, echo=T, fig.width=4, fig.height=4, fig.cap='Additional selection of genes with modes at nonzero counts. Symbols in blue represent genes rescued.'}
 sc_rescue <- filter_genes(sc, markers = markers, vmr.min = 1.5, min.cells.expressed = 50,
                           rescue.genes = TRUE, progress.bar = FALSE)
 ```
+
 This "gene rescue" scan will take some time and a progress bar is 
 displayed if `progress.bar = TRUE`.
 
@@ -320,7 +324,7 @@ or the rank $r$, must be estimated. The examples above used a single
 rank value. If the parameter `ranks` is a vector, the set of inferences will 
 be repeated for each rank value. 
 ```{r, cache=T}
-sc <- factorize(sc, ranks = 3:7, nrun = 5, verbose = 1, progress.bar = FALSE)
+sc <- factorize(sc, ranks = seq(3,7), nrun = 5, verbose = 1, progress.bar = FALSE)
 ```
 
 Note that `nrun` parameter above is set to a small value for illustration. 
@@ -348,7 +352,7 @@ and hyperparameters).
 The main function for Bayesian factorization is `vb_factorize()`:
 ```{r, cache=T}
 sb <- sc_rescue
-set.seed(1)
+set.seed(2)
 sb <- vb_factorize(sb, ranks =3, verbose = 3, Tol = 2e-4, hyper.update.n0 = 5)
 ```
 The iteration maximizes (log) evidence (per matrix elements)
@@ -358,7 +362,7 @@ By default, hyperparameters of priors are also updated after
 `hyper.update.n0` steps.
 As in maximum likelihood, multiple ranks can be specified:
 ```{r, cache=T}
-sb <- vb_factorize(sb, ranks = 2:7, nrun = 5, verbose = 1, Tol = 5e-4, progress.bar = FALSE)
+sb <- vb_factorize(sb, ranks = seq(2,7), nrun = 5, verbose = 1, Tol = 1e-4, progress.bar = FALSE)
 ```
 
 With `nrun` larger than 1, multiple inferences will be performed for 
@@ -377,14 +381,14 @@ plot(sb)
 
 ## 6. Visualization
 The rank scan above using Bayesian inference correctly identifies 
-$r=5$ as the optimal rank. The fit results for each rank --
-from either maximum likelihood or Bayesian inference -- are stored 
+$r=5$ as the optimal rank. The fit results for each rank--from 
+either maximum likelihood or Bayesian inference--are stored 
 in `sb@basis` and `sb@coeff`. Both are lists of matrices of length 
-equal to the number of rank values scanned. We can access them by, e.g.,
+equal to the number of rank values scanned. One can access them by, e.g.,
 ```{r}
 ranks(sb)
 
-head(basis(sb)[[which(ranks(sb)==5)]]) # basis matrix W for rank 5
+head(basis(sb)[ranks(sb)==5][[1]]) # basis matrix W for rank 5
 ```
 Heatmaps of $\sf W$ and $\sf H$ matrices are displayed by `gene_map()` and
 `cell_map()`, respectively (Figs. 6-7):
@@ -397,14 +401,14 @@ In addition to the marker gene list provided as a parameter,
 the representative groups of genes for clusters are selected by the 
 "max" scheme
 [@carmona-saez_etal]: genes are sorted for each cluster with decreasing 
-magnitudes of coefficient matrix elements, and first top members of the 
-list for which the magnitude is the actual maximum over all clusters are chosen.
-Based on the marker-metagene map in Fig. 6, we rename the clusters 1-5 
-as follows:
+magnitudes of coefficient matrix elements, and among the top members of the 
+list, those for which the magnitude is the actual maximum over all clusters 
+are chosen. Based on the marker-metagene map in Fig. 6, we rename the 
+clusters 1-5 as follows:
 ```{r}
-cell_type <- c('NK','B_cell','Monocytes','CD4+_T','CD8+_T')
-colnames(basis(sb)[[which(ranks(sb) == 5)]]) <- cell_type
-rownames(coeff(sb)[[which(ranks(sb) == 5)]]) <- cell_type
+cell_type <- c('CD8+_T','NK','Monocytes','B_cell','CD4+_T')
+colnames(basis(sb)[ranks(sb) == 5][[1]]) <- cell_type
+rownames(coeff(sb)[ranks(sb) == 5][[1]]) <- cell_type
 ```
 
 ```{r, fig.width = 4, fig.height=4, fig.cap = 'Heatmap of cluster coefficient matrix elements. Rows indicate clusters and columns the cells.'}

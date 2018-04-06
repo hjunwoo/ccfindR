@@ -30,6 +30,6 @@ can be used to modify it.
 }
 \examples{
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-s <- vb_factorize(s,ranks=2:4)
+s <- vb_factorize(s,ranks=seq(2,4))
 coeff(s)[[1]]
 }

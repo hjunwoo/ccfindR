@@ -9,41 +9,37 @@
 #' (\url{https://math.nist.gov/MatrixMarket/formats.html}).
 #' 
 #' @param dir Name of directory containing data files.
-#' @param count Name of count data file.
-#' @param genes Name of gene list file.
-#' @param barcodes Name of barcode list file.
 #' @param remove.zeros If \code{TRUE}, empty rows/columns are 
 #'        removed.
 #' @examples
 #' library(S4Vectors)
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' rowData(s) <- DataFrame(1:4)
-#' colData(s) <- DataFrame(1:3)
+#' rowData(s) <- DataFrame(seq_len(4))
+#' colData(s) <- DataFrame(seq_len(3))
 #' write_10x(s,dir='.')
 #' s <- read_10x(dir='.')
 #' s
 #' @return Object of class \code{scNMFSet}
 #' @export
 #' @import SingleCellExperiment
-read_10x <- function(dir, count='matrix.mtx', genes='genes.tsv', 
-                     barcodes='barcodes.tsv', remove.zeros=TRUE){
+read_10x <- function(dir, remove.zeros=TRUE){
   
   if(!dir.exists(dir)) stop(cat('Input directory',dir,'does not exist\n'))
-  count <- paste0(dir,'/',count)
+  count <- paste0(dir,'/matrix.mtx')
   if(!file.exists(count)) stop(cat('Count file',count,'does not exist\n'))
   Mat <- as(Matrix::readMM(count),'dgCMatrix')
-  genes <- paste0(dir,'/',genes)
+  genes <- paste0(dir,'/genes.tsv')
   if(!file.exists(genes)) 
     stop(cat('Count file',genes,'does not exist\n'))
   glist <- utils::read.table(genes,stringsAsFactors=FALSE)
-  barcodes <- paste0(dir,'/',barcodes)
+  barcodes <- paste0(dir,'/barcodes.tsv')
   if(!file.exists(barcodes)) 
     stop(cat('Count file',barcodes,'does not exist\n'))
   clist <- utils::read.table(barcodes,stringsAsFactors=FALSE)
   rownames(Mat) <- rownames(glist) <- glist[,1]
   colnames(Mat) <- rownames(clist) <- clist[,1]
   
-  x <- scNMFSet(assays=list(counts=Mat))
+  x <- scNMFSet(assays=list(counts=Mat), remove.zeros=FALSE)
   rowData(x) <- as(glist, 'DataFrame')
   rownames(x) <- rownames(glist)
   clist <- as(clist, 'DataFrame')
@@ -84,10 +80,10 @@ filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE,
   h <- graphics::hist(log10(umi.count), plot=FALSE)
   n <- length(h$counts)
   color <- rep('white',n)
-  if(umi.min!=0 | umi.max<Inf)
+  if(umi.min | umi.max<Inf)
     color[log10(umi.min) <= h$mids & h$mids <= log10(umi.max)] <- 'red'
   if(plot) plot(h, col=color, main='Cells')
-  if(umi.min!=0 | umi.max<Inf)
+  if(umi.min | umi.max<Inf)
     cat(sum(selected_cells),'cells out of',dim(object)[2],'selected\n')
   
   object <- object[, selected_cells]
@@ -114,10 +110,9 @@ filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE,
 #'    filtering.
 #' @param max.cells.expressed Maximum no. of cells expressed for gene 
 #'    filtering.
-#' @param plot Plot the distribution of no. of cells expressed vs.
-#'             VMR.
 #' @param rescue.genes Selected additional genes whose (non-zero)
 #'        count distributions have at least one mode. 
+#' @param plot Plot the distribution of no. of cells expressed vs. VMR.        
 #' @param progress.bar Display progress of mode-gene scan or VMR
 #'    calculation with \code{save.memory = TRUE}.
 #' @param save.memory For a very large number of cells, calculate VMR 
@@ -133,12 +128,13 @@ filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE,
 #' @export
 filter_genes <- function(object, markers= NULL, vmr.min=0, 
                          min.cells.expressed=0, max.cells.expressed=Inf, 
-                         plot=TRUE, rescue.genes=TRUE, progress.bar=TRUE,
-                         save.memory=FALSE, cex=0.5){
+                         rescue.genes=TRUE, progress.bar=TRUE,
+                         save.memory=FALSE, plot=TRUE, cex=0.5){
   
   selected_genes <- variable_genes <- rep(FALSE, nrow(object))
-  if(!is.null(markers)){
-    for(k in 1:ncol(rowData(object)))
+  if(is.null(markers)) marker_genes=NULL
+  else{
+    for(k in seq_len(ncol(rowData(object))))
       selected_genes <- selected_genes | 
         (mk <- rowData(object)[,k] %in% markers)
     marker_genes <- selected_genes
@@ -149,33 +145,18 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
   count <- counts(object)
   count <- count[ncexpr>0,]
   ncexpr <- ncexpr[ncexpr>0]
-  gmean <- Matrix::rowMeans(count)
   ngenes <- nrow(object)
-  if(!save.memory) 
-    var <- rowVars(count,means=gmean) # memory intensive
-  else{
-    if(progress.bar){
-      cat('Calculating vmr...\n')
-      pb <- utils::txtProgressBar(style=3)
-    }
-    var <- c()
-    denom <- ncol(count)
-    for(i in 1:nrow(count)){
-      g <- count[i,]-gmean[i]
-      var <- c(var, sum(g*g)/denom)
-      if(progress.bar) utils::setTxtProgressBar(pb, i/ngenes)
-    }
-    if(progress.bar) close(pb)
-  }
-  vmr <- var/gmean
+  vmr <- calc_vmr(count, save.memory=save.memory, 
+                  progress.bar=progress.bar)
+  
   variable_genes <- vmr.min <= vmr & 
             min.cells.expressed <= ncexpr & 
             ncexpr <= max.cells.expressed
-  if(rescue.genes & sum(variable_genes)<ngenes){
+  if(rescue.genes & sum(variable_genes) < ngenes){
     mode_genes <- c()
     cat('Looking for genes with modes ...\n')
     if(progress.bar) pb <- utils::txtProgressBar(style=3)
-    for(i in 1:ngenes){
+    for(i in seq_len(ngenes)){
       if(variable_genes[i]) mode <- FALSE
       else mode <- has_mode(counts(object)[i,])
       mode_genes <- c(mode_genes,mode)
@@ -184,46 +165,124 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
     if(progress.bar) close(pb)
     selected_genes <- selected_genes | variable_genes | mode_genes
   }
-  else{ selected_genes <- selected_genes | variable_genes }
-  
-  if(plot){
-    xlim=c(min(ncexpr),max(ncexpr))
-    if(sum(selected_genes) < ngenes){
-      graphics::plot(x=ncexpr[!selected_genes], y=vmr[!selected_genes], 
-           xlim=xlim,ylim=c(min(vmr),max(vmr)), log='y', pch=21, 
-        col='gray', bg='white', xlab='No. of cells expressed', ylab='VMR', 
-        main='Genes', cex=cex, bty='n')
-      graphics::points(x=ncexpr[variable_genes], y=vmr[variable_genes], 
-                       pch=21, bg='red', cex=cex, lwd=0.5)
-      if(rescue.genes)
-        graphics::points(x=ncexpr[mode_genes], y=vmr[mode_genes], 
-              pch=21, bg='blue', cex=cex, lwd=0.5)
-      if(!is.null(markers))
-        if(sum(marker_genes) > 0)
-          points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
-                 bg='orange', cex=cex, lwd=0.5)
-    }else{
-      graphics::plot(x=ncexpr[variable_genes], y=vmr[variable_genes], 
-           xlim=xlim,ylim=c(min(vmr),max(vmr)), pch=21, bg='white', 
-           cex=cex, lwd=0.5, log='y', col='gray', 
-           xlab='No. of cells expressed',
-             ylab='VMR', main='Genes', bty='n')
-      if(!is.null(markers)) if(sum(marker_genes) > 0)
-        graphics::points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
-               bg='orange', cex=cex, lwd=0.5)
-    }
+  else{ 
+    selected_genes <- selected_genes | variable_genes
+    mode_genes <- NULL
   }
-                  
+  
   if(!is.null(markers)) if(sum(marker_genes) > 0)
     cat(sum(marker_genes),'marker genes found\n')
   if(vmr.min>0 | min.cells.expressed>0 | max.cells.expressed <Inf){
     cat(sum(variable_genes),'variable genes out of',dim(object)[1],'\n')
     if(rescue.genes) cat(sum(selected_genes & ! variable_genes),
-      'additional genes rescued\n')
+                         'additional genes rescued\n')
     cat(sum(selected_genes),'genes selected\n')
   }
-    
+  
+  if(plot) plot_genes(object, vmr=vmr, ncexpr=ncexpr, 
+    selected_genes=selected_genes, variable_genes=variable_genes,
+    mode_genes=mode_genes, marker_genes=marker_genes, cex=cex) 
+  
   return(object[selected_genes,])
+}
+
+# Calculate variance-to-mean ratio
+calc_vmr <- function(count, save.memory=FALSE, progress.bar=TRUE){
+  
+  gmean <- Matrix::rowMeans(count)
+  ngenes <- nrow(count)
+  if(!save.memory) 
+    var <- rowVars(count,means=gmean) # memory intensive
+  else{
+    if(progress.bar){
+      cat('Calculating vmr...\n')
+      pb <- utils::txtProgressBar(style=3)
+    }
+    var <- c()
+    denom <- ncol(count)  
+    for(i in seq_len(nrow(count))){
+      g <- count[i,]-gmean[i]
+      var <- c(var, sum(g*g)/denom)
+      if(progress.bar) utils::setTxtProgressBar(pb, i/ngenes)
+    }
+    if(progress.bar) close(pb)
+  }
+  return(var/gmean)
+}
+
+#' Plot gene variance distributions
+#' 
+#' Gene variance to mean ratio and the number of expressing cells are
+#' plotted.
+#' 
+#' This function can be called separately or is also called within
+#' \code{\link{filter_genes}} by default. 
+#' In the latter case, parameters other
+#' than \code{object} will have been already filled. If called separately
+#' with \code{NULL} gene lists, VMR is recalculated but gene selection
+#' is not done.
+#' 
+#' @param object Object containing count data
+#' @param vmr Variance to mean ratio (VMR)
+#' @param ncexpr Number of cells expressing each gene
+#' @param selected_genes Logical vector specifing genes selected
+#' @param variable_genes Logical vector specifing genes with high VMR
+#' @param mode_genes Logical vector specifying genes with nonzero modes
+#' @param marker_genes Logical vector specifying marker genes
+#' @param save.memory If \code{TRUE}, calculate VMR using slower
+#'        method to save memory. Not used when gene lists are supplied.
+#' @param progress.bar Display progress bar for VMR calculation.
+#'        Not used when gene lists are supplied.
+#' @param cex Symbol size for genes (supplied to \code{plot()}).
+#' @return \code{NULL}
+#' @examples
+#' set.seed(1)
+#' s <- scNMFSet(matrix(stats::rpois(n=1200,lambda=3),40,30))
+#' plot_genes(s)
+#' @export
+plot_genes <- function(object, vmr=NULL, ncexpr=NULL, selected_genes=NULL, 
+                  variable_genes=NULL, mode_genes=NULL, 
+                  marker_genes=NULL, save.memory=FALSE, progress.bar=TRUE, 
+                  cex=0.5){
+  
+  if(is.null(ncexpr)){  # no. of cells expressing each gene
+    ncexpr <- Matrix::rowSums(counts(object) > 0) 
+    count <- counts(object)
+    count <- count[ncexpr>0,]
+    ncexpr <- ncexpr[ncexpr>0]
+  }
+  if(is.null(vmr)) 
+    vmr <- calc_vmr(count, save.memory=save.memory, progress.bar=progress.bar)
+  
+  ngenes <- nrow(object)
+  if(is.null(selected_genes)) selected_genes <- rep(FALSE, ngenes)
+  
+  xlim=c(min(ncexpr),max(ncexpr))
+  if(sum(selected_genes) < ngenes | !is.null(variable_genes)){
+    graphics::plot(x=ncexpr[!selected_genes], y=vmr[!selected_genes], 
+         xlim=xlim,ylim=c(min(vmr),max(vmr)), log='y', pch=21, 
+        col='gray', bg='white', xlab='No. of cells expressed', ylab='VMR', 
+        main='Genes', cex=cex, bty='n')
+    if(!is.null(variable_genes))
+      graphics::points(x=ncexpr[variable_genes], y=vmr[variable_genes], 
+                       pch=21, bg='red', cex=cex, lwd=0.5)
+    if(!is.null(mode_genes))
+        graphics::points(x=ncexpr[mode_genes], y=vmr[mode_genes], 
+              pch=21, bg='blue', cex=cex, lwd=0.5)
+    if(!is.null(marker_genes))
+      if(sum(marker_genes) > 0)
+        points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
+                 bg='orange', cex=cex, lwd=0.5)
+  }else{
+    graphics::plot(x=ncexpr[variable_genes], y=vmr[variable_genes], 
+        xlim=xlim,ylim=c(min(vmr),max(vmr)), pch=21, bg='white', 
+        cex=cex, lwd=0.5, log='y', col='gray', xlab='No. of cells expressed', 
+        ylab='VMR', main='Genes', bty='n')
+    if(!is.null(marker_genes)) if(sum(marker_genes) > 0)
+        graphics::points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
+               bg='orange', cex=cex, lwd=0.5)
+  }
+  return(invisible(object))
 }
 
 #' Normalize count data
@@ -261,10 +320,10 @@ has_mode <- function(g){
   
   tb <- table(g)
   flag <- FALSE
-  tb <- tb[names(tb)!='0'] # remove zero count
+  tb <- tb[names(tb)]    # remove zero count
   n <- length(tb)
   if(n<2) return(FALSE)
-  for(k in 1:(n-1)) if(tb[k] < tb[k+1]) return(TRUE)
+  for(k in seq_len(n-1)) if(tb[k] < tb[k+1]) return(TRUE)
   return(FALSE)
 
 }
@@ -317,10 +376,10 @@ rowVars <- function(x, means){
 #' @examples  
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-#' rownames(x) <- 1:10
-#' colnames(x) <- 1:100
-#' s <- scNMFSet(count=x,rowData=1:10, colData=1:100)
-#' s <- vb_factorize(s,ranks=2:5)
+#' rownames(x) <- seq_len(10)
+#' colnames(x) <- seq_len(100)
+#' s <- scNMFSet(count=x,rowData=seq_len(10), colData=seq_len(100))
+#' s <- vb_factorize(s,ranks=seq(2,5))
 #' plot(s)
 #' gene_map(s, rank=3)
 #' @export
@@ -330,27 +389,26 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
                      main='Genes', col=NULL, ...){
   
   if(missing(rank)) rank <- ranks(object)[1] # by default the first rank
-  rid <- which(ranks(object) == rank)
-  w <- basis(object)[[rid]]
+  w <- basis(object)[ranks(object)==rank][[1]]
   if(subtract.mean){
     if(log) w <- log10(w)
     w <- w - rowMeans(w)
     if(log) w <- 10^w
   }
-  colnames(w) <- 1:rank
+  colnames(w) <- seq_len(rank)
   if(!is.null(gene.names)) rownames(w) <- gene.names
   if(dim(w)[1] <= max.per.cluster) select <- rownames(w)
   else select <- gene_select(w, markers, max.per.cluster= max.per.cluster)
   w <- w[select,]
   if(is.null(col)) ccol <- grDevices::rainbow(n = dim(w)[2])
   else ccol <- col
-  gid <- apply(w,1,function(x){which(x==max(x))})
+  gid <- apply(w,1,which.max)
   stats::heatmap(w, Colv = Colv, RowSideColors = ccol[gid], 
                  ColSideColors = ccol, revC = TRUE, main =main, 
                  col = RColorBrewer::brewer.pal(n=9,'YlOrRd'),...)
 }
 
-#' Plot heatmap of clustering coefficnet matrix
+#' Plot heatmap of clustering coefficient matrix
 #' 
 #' Retrieve a coefficient matrix \code{H}
 #' derived from factorization by rank value
@@ -359,8 +417,8 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' @param object Object of class \code{scNMFSet}.
 #' @param rank Rank value for which the cell map is to be displayed. 
 #'   The object must contain the corresponding slot: one element of 
-#'             \code{object@coeff[[k]]} for which 
-#'             \code{object@ranks[[k]]==rank}.
+#'             \code{coeff(object)[[k]]} for which 
+#'             \code{ranks(object)[[k]]==rank}.
 #' @param main Title of plot.
 #' @param ... Other arguments to be passed to \code{\link{heatmap}}, 
 #' \code{\link{image}},
@@ -369,21 +427,20 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' @examples
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-#' rownames(x) <- 1:10
-#' colnames(x) <- 1:100
-#' s <- scNMFSet(count=x,rowData=1:10,colData=1:100)
-#' s <- vb_factorize(s,ranks=2:5)
+#' rownames(x) <- seq_len(10)
+#' colnames(x) <- seq_len(100)
+#' s <- scNMFSet(count=x,rowData=seq_len(10),colData=seq_len(100))
+#' s <- vb_factorize(s,ranks=seq(2,5))
 #' plot(s)
 #' cell_map(s, rank=3)
 #' @export
 cell_map <- function(object, rank, main = 'Cells', ...){
   
   if(missing(rank)) rank <- ranks(object)[1]
-  rid <- which(ranks(object) == rank)
-  h <- coeff(object)[[rid]]
+  h <- coeff(object)[ranks(object) == rank][[1]]
   nrow <- nrow(h)
   ccol <- grDevices::rainbow(n = nrow)
-  cid <- apply(h,2,function(x){which(x==max(x))})
+  cid <- apply(h,2, which.max)
   labCol <- if(dim(h)[2]>10) "" else colnames(h)
   stats::heatmap(h, Rowv = NA, ColSideColors = ccol[cid], RowSideColors = ccol, 
     revC = TRUE,labCol = labCol, main = main, 
@@ -409,10 +466,10 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' @examples
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
-#' rownames(x) <- 1:10
-#' colnames(x) <- 1:100
-#' s <- scNMFSet(count=x,rowData=1:10,colData=1:100)
-#' s <- vb_factorize(s,ranks=2:5)
+#' rownames(x) <- seq_len(10)
+#' colnames(x) <- seq_len(100)
+#' s <- scNMFSet(count=x,rowData=seq_len(10),colData=seq_len(100))
+#' s <- vb_factorize(s,ranks=seq(2,5))
 #' meta_genes(s, rank=5)
 #' @export
 meta_genes <- function(object, rank, basis.matrix=NULL, 
@@ -420,8 +477,7 @@ meta_genes <- function(object, rank, basis.matrix=NULL,
                        subtract.mean=TRUE,log=TRUE){
   
   if(is.null(basis.matrix)){
-    id <- which(ranks(object)==rank)
-    w <- basis(object)[[id]]
+    w <- basis(object)[ranks(object) == rank][[1]]
     if(subtract.mean){
       if(log) w <- log10(w)
       w <- w - rowMeans(w)
@@ -434,11 +490,11 @@ meta_genes <- function(object, rank, basis.matrix=NULL,
   if(!is.null(gene_names)) rownames(w) <- gene_names
   nmax <- min(max.per.cluster, nrow(w))
   select <- vector('list',rank)
-  for(k in 1:rank){
+  for(k in seq_len(rank)){
     v <- w[order(w[,k],decreasing=TRUE),]
     flag <- apply(v,1,function(x){x[k]==max(x)})
     tmp <- rownames(v)[which(flag)]
-    if(length(tmp) > nmax) tmp <- tmp[1:nmax]
+    if(length(tmp) > nmax) tmp <- tmp[seq_len(nmax)]
     select[[k]] <- tmp
   }
   select
@@ -448,7 +504,7 @@ gene_select <- function(w, markers = NULL, max.per.cluster = 10){
   
   rank <- dim(w)[2]
   select <- c()
-  for(k in 1:rank){
+  for(k in seq_len(rank)){
     nmax <- min(max.per.cluster, dim(w)[1])
     if(!is.null(markers)){
       select <- c(select, markers[markers %in% rownames(w)])
@@ -457,7 +513,7 @@ gene_select <- function(w, markers = NULL, max.per.cluster = 10){
     v <- w[order(w[,k],decreasing=TRUE),]
     flag <- apply(v,1,function(x){x[k]==max(x)})
     tmp <- rownames(v)[which(flag)]
-    if(length(tmp) > nmax) tmp <- tmp[1:nmax]
+    if(length(tmp) > nmax) tmp <- tmp[seq_len(nmax)]
     select <- c(select, tmp)
   }
   unlist(select)
@@ -485,10 +541,10 @@ gene_select <- function(w, markers = NULL, max.per.cluster = 10){
 #' @examples
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
-#' rownames(x) <- 1:10
-#' colnames(x) <- 1:170
-#' s <- scNMFSet(count=x,rowData=1:10,colData=1:170)
-#' s <- vb_factorize(s,ranks=2:5)
+#' rownames(x) <- seq_len(10)
+#' colnames(x) <- seq_len(170)
+#' s <- scNMFSet(count=x,rowData=seq_len(10),colData=seq_len(170))
+#' s <- vb_factorize(s,ranks=seq(2,5))
 #' visualize_clusters(s,rank=5)
 #' @export
 #' @importFrom graphics par
@@ -500,11 +556,9 @@ visualize_clusters <- function(object, rank, verbose=FALSE, cex=1,
     rid <- 1
     rank <- ranks(object)[1]
   }
-  else rid <- which(ranks(object) == rank)
-  
-  h <- coeff(object)[[rid]]
+  h <- coeff(object)[ranks(object) == rank][[1]]
   tsne <- Rtsne::Rtsne(t(h), verbose=verbose, ...)
-  cid <- apply(h,2,function(x){which(x==max(x))}) # cluster assignment
+  cid <- apply(h,2,which.max)       # cluster assignment
   col <- grDevices::rainbow(n=dim(h)[1])
   color <- col[cid]
   
@@ -568,7 +622,7 @@ simulate_data <- function(nfeatures, nsamples, generate.factors=FALSE,
     a <- rep(floor(nfeatures/rank),rank-1)
     a <- c(a,nfeatures-sum(a))
     H <- W <- NULL
-    for(k in 1:rank){
+    for(k in seq_len(rank)){
       tmp <- matrix(0, nrow=rank, ncol=nsamples[k])
       tmp[k,] <- 1
       H <- cbind(H, tmp)
@@ -579,13 +633,12 @@ simulate_data <- function(nfeatures, nsamples, generate.factors=FALSE,
       W <- rbind(W, tmp2)
     }
     wh=W %*% H
-    x <- sapply(c(wh), function(x){stats::rpois(n=1,lambda=x)})
-    x=matrix(x,nrow=nfeatures, ncol=sum(nsamples))
+    x <- apply(wh, c(1,2), function(x){stats::rpois(n=1, lambda=x)})
     if(shuffle){
-      cel <- sample(1:ncol(x),size=ncol(x),replace=FALSE)
+      cel <- sample(seq_len(ncol(x)),size=ncol(x),replace=FALSE)
       x <- x[,cel]
       H <- H[,cel]
-      gen <- sample(1:nrow(x),size=nrow(x),replace=FALSE)
+      gen <- sample(seq_len(nrow(x)),size=nrow(x),replace=FALSE)
       x <- x[gen,]
       W <- W[gen,]
     }
@@ -593,12 +646,12 @@ simulate_data <- function(nfeatures, nsamples, generate.factors=FALSE,
   } else{
     x <- NULL
     q <- gtools::rdirichlet(n=rank,alpha=rep(alpha0,nfeatures))
-    for(k in 1:rank){
+    for(k in seq_len(rank)){
       x <- cbind(x, stats::rmultinom(n=nsamples[k], 
                              size=nfeatures*nfactor, prob=q[k,]))
     }
     if(shuffle) 
-      x <- x[,sample(1:ncol(x),size=ncol(x),replace=FALSE)]
+      x <- x[,sample(seq_len(ncol(x)),size=ncol(x),replace=FALSE)]
     return(x)
   }
 }
@@ -627,7 +680,7 @@ simulate_data <- function(nfeatures, nsamples, generate.factors=FALSE,
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
 #' s <- scNMFSet(count=x$x)
-#' s <- vb_factorize(s,ranks=2:8,nrun=5)
+#' s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 #' plot(s)  
 #' @export
 simulate_whx <- function(nrow, ncol, rank, aw=0.1, bw=1, ah=0.1, bh=1){
@@ -639,57 +692,42 @@ simulate_whx <- function(nrow, ncol, rank, aw=0.1, bw=1, ah=0.1, bh=1){
   h <- matrix(h, nrow=rank, ncol=ncol)
   
   lambda <- w%*%h
-  x <- matrix(sapply(c(lambda), 
-                     function(x){stats::rpois(n=1,lambda=x)}),
-              nrow=nrow,ncol=ncol)
+  x <- apply(lambda, seq(1,2), 
+             function(x){stats::rpois(n=1,lambda=x)})
   i <- rowSums(x) > 0
   j <- colSums(x) > 0
   x <- x[i,j]
   w <- w[i,]
   h <- h[,j]
-  rownames(x) <- 1:(dim(x)[1])
-  colnames(x) <- 1:(dim(x)[2])
+  rownames(x) <- seq_len(nrow(x))
+  colnames(x) <- seq_len(ncol(x))
   
   list(w=w, h=h, x=x)
 }
 
-find_cluster <- function(object, rank){
-  
-  if(missing(rank)) id <- 1
-  else id <- which(object@ranks==rank)
-  
-  rank <- object@ranks[id]
-  cons <- t(object@consistency[[id]])
-  d <- stats::as.dist(1-cons)
-  fit <- stats::hclust(d,method='ward.D')
-  stats::cutree(fit,k=rank)
-  
-}
 #' Write 10x data files
 #' 
-#' Use an object and write count and annotation files in 10x format
-#' 
+#' Use an object and write count and annotation files in 10x format.
+#'  
 #' @param object Object of class \code{scNMFSet} containing count data
-#' @param dir Directory where files are to be written
-#' @param count Output file name for count data (sparse matrix mtx format)
-#' @param genes Gene annotation data output file (tsv format)
-#' @param barcodes Cell annotation data output file (tsv format)
+#' @param dir Directory where files are to be written. Output file
+#'            names are \code{matrix.mtx}, \code{genes.tsv},
+#'            \code{barcodes.tsv}.
 #' @param quote Suppress quotation marks in output files.
 #' @return \code{NULL}
 #' @examples
 #' set.seed(1)
 #' x <- matrix(rpois(n=12,lambda=3),4,3)
-#' rownames(x) <- 1:4
-#' colnames(x) <- 1:3
-#' s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
+#' rownames(x) <- seq_len(4)
+#' colnames(x) <- seq_len(3)
+#' s <- scNMFSet(count=x,rowData=seq_len(4),colData=seq_len(3))
 #' write_10x(s,dir='.')
 #' @export
-write_10x <- function(object, dir, count='matrix.mtx', genes='genes.tsv', 
-                      barcodes='barcodes.tsv',quote=FALSE){
+write_10x <- function(object, dir, quote=FALSE){
   
-  count <- paste0(dir,'/',count)
-  genes <- paste0(dir,'/',genes)
-  barcodes <- paste0(dir,'/',barcodes)
+  count <- paste0(dir,'/matrix.mtx')
+  genes <- paste0(dir,'/genes.tsv')
+  barcodes <- paste0(dir,'/barcodes.tsv')
   x <- counts(object)
   x <- as(x,'sparseMatrix')
   Matrix::writeMM(as(x,'Matrix'),file=count)
@@ -715,15 +753,14 @@ write_10x <- function(object, dir, count='matrix.mtx', genes='genes.tsv',
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
 #' s <- scNMFSet(count=x$x)
-#' s <- vb_factorize(s,ranks=2:8,nrun=5)
+#' s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 #' cid <- cluster_id(s, rank=5)
 #' table(cid)
 #' @export
 cluster_id <- function(object, rank=2){
   
-  id <- which(ranks(object)==rank)
-  h <- t(coeff(object)[[id]])
-  cid <- apply(h,1,function(x){which(x==max(x))})
+  h <- coeff(object)[ranks(object) == rank][[1]]
+  cid <- apply(h, 2, which.max)
   names(cid) <- colnames(object)
   cid
 }

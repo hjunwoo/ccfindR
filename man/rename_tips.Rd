@@ -23,8 +23,8 @@ Rename tips of trees with cell types
 set.seed(1)
 x <- simulate_whx(nrow=50,ncol=100,rank=5)
 s <- scNMFSet(x$x)
-s <- vb_factorize(s,ranks=2:8,nrun=5)
+s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 tree <- build_tree(s,rmax=5)
-tree <- rename_tips(tree,rank=5,tip.labels=letters[1:5])
+tree <- rename_tips(tree,rank=5,tip.labels=letters[seq_len(5)])
 tree 
 }

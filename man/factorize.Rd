@@ -77,6 +77,6 @@ When run with multiple values of \code{ranks},
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60,40,30))
 s <- scNMFSet(count=x)
-s <- factorize(s,ranks=2:8,nrun=5)
+s <- factorize(s,ranks=seq(2,8),nrun=5)
 plot(s)
 }

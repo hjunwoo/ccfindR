@@ -22,6 +22,6 @@ Access and modify basis matrices
 set.seed(1)
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 s <- vb_factorize(s, ranks=3)
-basis(s)[[1]] <- apply(basis(s)[[1]],1:2,round,digits=3)
+basis(s)[[1]] <- apply(basis(s)[[1]],c(1,2),round,digits=3)
 basis(s)
 }

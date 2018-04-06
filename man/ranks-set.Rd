@@ -19,7 +19,7 @@ Replace \code{ranks} slot of \code{scNMFSet} object
 }
 \examples{
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-s <- vb_factorize(s, ranks=2:3)
+s <- vb_factorize(s, ranks=seq(2,3))
 ranks(s) <- c('two','three')
 ranks(s)
 }

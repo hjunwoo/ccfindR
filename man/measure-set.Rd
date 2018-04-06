@@ -20,6 +20,6 @@ Can be used to access and modify factorization measure
 \examples{
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 s <- vb_factorize(s, ranks=3)
-measure(s)[,-1] <- apply(measure(s)[,-1],1:2, round,digits=3)
+measure(s)[,-1] <- apply(measure(s)[,-1], c(1,2), round,digits=3)
 measure(s)
 }

@@ -1,9 +1,9 @@
 #' Class \code{scNMFSet} for storing input data and results
 #'
 #' \code{S4} class derived from \code{\link{SingleCellExperiment}}
-#' that can store single-cell count matrix, 
-#' gene and cell annotation data frames, and factorization factors as well 
-#' as quality measures for rank determination.
+#' that can store single-cell count matrix, gene and cell annotation 
+#' data frames, and factorization factors as well as quality measures 
+#' for rank determination.
 #' 
 #' @slot assays Named list for count matrix \code{counts}. 
 #' @slot rowData \code{DataFrame} for gene (feature) 
@@ -29,11 +29,12 @@
 #' @examples
 #' library(S4Vectors)
 #' # toy matrix
-#' ngenes <- 8; ncells <- 5
+#' ngenes <- 8 
+#' ncells <- 5
 #' mat <- matrix(rpois(n=ngenes*ncells,lambda=3),ngenes,ncells)
 #' 
-#' abc <- letters[1:ngenes]
-#' ABC <- LETTERS[1:ncells] 
+#' abc <- letters[seq_len(ngenes)]
+#' ABC <- LETTERS[seq_len(ncells)] 
 #' genes <- DataFrame(gene_id=abc)
 #' cells <- DataFrame(cell_id=ABC)
 #' rownames(mat) <- rownames(genes) <- abc
@@ -52,9 +53,10 @@
 #' rowData(s)
 #' 
 #' # modify slots
-#' colData(s) <- DataFrame(cell_id=1:ncells,
+#' colData(s) <- DataFrame(cell_id=seq_len(ncells),
 #'               cell_type=c(rep('tissue1',2),
 #'                           rep('tissue2',ncells-2)))
+#' colData(s)
 #' @return Object of class \code{scNMFSet}
 #' @export scNMFSet
 #' @import SingleCellExperiment
@@ -107,8 +109,7 @@ scNMFSet <- function(count=NULL, ..., remove.zeros=TRUE){
 #' @export
 setMethod('show', signature='scNMFSet',
            definition=function(object){
-            cat('An object of class ', class(object), '\n', sep='')
-             callNextMethod()
+           callNextMethod()
           })
 
 #' Accessor for count matrix
@@ -126,12 +127,19 @@ setMethod('counts',signature='scNMFSet',
        assay(object, i='counts')
      }
 )
-# Assignment of count matrix
-# 
-# @param object Object containing count
-# @param value Matrix-like object for replacement
-# @examples
-# 
+#' Assignment of count matrix
+#' 
+#' Count matrix can be modified
+#' 
+#' @param object Object containing count
+#' @param value Matrix-like object for replacement
+#' @return Object with updated count
+#' @export
+#' @examples
+#' mat <- matrix(rpois(n=12,lambda=3),3,4)
+#' s <- scNMFSet(count = mat)
+#' counts(s) <- mat^2
+#' counts(s)
 setMethod('counts<-','scNMFSet',
      function(object,value){
        assay(object, i='counts') <- value
@@ -151,7 +159,7 @@ setMethod('counts<-','scNMFSet',
 #' @return Either \code{NULL} or vector.
 #' @examples
 #' s <- scNMFSet(matrix(rpois(n=12,lambda=3),4,3))
-#' s <- vb_factorize(s,ranks=2:4)
+#' s <- vb_factorize(s,ranks=seq(2,4))
 #' ranks(s)
 #' @export
 setGeneric('ranks', function(object) standardGeneric('ranks'))
@@ -178,7 +186,7 @@ setMethod('ranks', signature='scNMFSet', function(object) object@ranks)
 #' under each rank value.
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' s <- vb_factorize(s,ranks=2:4)
+#' s <- vb_factorize(s,ranks=seq(2,4))
 #' basis(s)[[1]]
 #' @export
 setGeneric('basis', function(object) standardGeneric('basis'))
@@ -208,7 +216,7 @@ setMethod('basis', signature='scNMFSet', function(object) object@basis)
 #' under each rank value.
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' s <- vb_factorize(s,ranks=2:4)
+#' s <- vb_factorize(s,ranks=seq(2,4))
 #' coeff(s)[[1]]
 #' @export
 setGeneric('coeff', function(object) standardGeneric('coeff'))
@@ -236,7 +244,7 @@ setMethod('coeff', signature='scNMFSet', function(object) object@coeff)
 #' @return Either \code{NULL} or a data frame containing measures.
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' s <- vb_factorize(s,ranks=2:4)
+#' s <- vb_factorize(s,ranks=seq(2,4))
 #' measure(s)
 #' @export
 setGeneric('measure', function(object) standardGeneric('measure'))
@@ -257,18 +265,18 @@ setMethod('measure', signature='scNMFSet', function(object) object@measure)
 #' @param j column index
 #' @return Subsetted object
 setMethod('[', 'scNMFSet', function(x, i, j){
-              if(missing(i)) i=1:nrow(x)
-              if(missing(j)) j=1:ncol(x)
+              if(missing(i)) i=seq_len(nrow(x))
+              if(missing(j)) j=seq_len(ncol(x))
               x <- callNextMethod()
               if(length(basis(x)) > 0){
                 w <- basis(x)
-                  for(k in 1:length(w)) 
+                  for(k in seq_len(length(w))) 
                     w[[k]] <- w[[k]][i,]
                 basis(x) <- w
               }
               if(length(coeff(x)) > 0){
                 h <- coeff(x)
-                  for(k in 1:length(h))
+                  for(k in seq_len(length(h)))
                     h[[k]] <- h[[k]][,j]
                 coeff(x) <- h
               }
@@ -292,9 +300,9 @@ setValidity('scNMFSet', function(object){
 #' @return DataFrame of row annotation
 #' @examples
 #' x <- matrix(rpois(n=12,lambda=3),4,3)
-#' rownames(x) <- 1:4
-#' colnames(x) <- 1:3
-#' s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
+#' rownames(x) <- seq_len(4)
+#' colnames(x) <- seq_len(3)
+#' s <- scNMFSet(count=x,rowData=seq_len(4),colData=seq_len(3))
 #' rowData(s) 
 #' @export
 setMethod('rowData','scNMFSet', 
@@ -318,9 +326,9 @@ setMethod('rowData<-','scNMFSet',
 #' @examples
 #' library(S4Vectors)
 #' x <- matrix(rpois(n=12,lambda=3),4,3)
-#' rownames(x) <- 1:4
+#' rownames(x) <- seq_len(4)
 #' colnames(x) <- c('a','b','c')
-#' s <- scNMFSet(count=x,rowData=1:4,colData=c('a','b','c'))
+#' s <- scNMFSet(count=x,rowData=seq_len(4),colData=c('a','b','c'))
 #' cols <- DataFrame(tissue=c('tissue1','tissue1','tissue2'))
 #' rownames(cols) <- c('a','b','c')
 #' colData(s) <- cols
@@ -337,9 +345,9 @@ setMethod('colData','scNMFSet',
 #' @examples
 #' library(S4Vectors)
 #' x <- matrix(rpois(n=12,lambda=3),4,3)
-#' rownames(x) <- 1:4
+#' rownames(x) <- seq_len(4)
 #' colnames(x) <- c('a','b','c')
-#' s <- scNMFSet(count=x,rowData=1:4,colData=c('a','b','c'))
+#' s <- scNMFSet(count=x,rowData=seq_len(4),colData=c('a','b','c'))
 #' cols <- DataFrame(tissue=c('tissue1','tissue1','tissue2'))
 #' rownames(cols) <- c('a','b','c')
 #' colData(s) <- cols
@@ -358,7 +366,7 @@ setMethod('colData<-','scNMFSet',
 #' @return Input object with updated ranks
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' s <- vb_factorize(s, ranks=2:3)
+#' s <- vb_factorize(s, ranks=seq(2,3))
 #' ranks(s) <- c('two','three')
 #' ranks(s)
 #' @export
@@ -372,7 +380,7 @@ setGeneric('ranks<-', function(object,value) standardGeneric('ranks<-'))
 #' @return Input object with updated ranks
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-#' s <- vb_factorize(s, ranks=2:3)
+#' s <- vb_factorize(s, ranks=seq(2,3))
 #' ranks(s) <- c('two','three')
 #' ranks(s)
 #' @export
@@ -393,7 +401,7 @@ setMethod('ranks<-','scNMFSet',
 #' set.seed(1)
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 #' s <- vb_factorize(s, ranks=3)
-#' basis(s)[[1]] <- apply(basis(s)[[1]],1:2,round,digits=3)
+#' basis(s)[[1]] <- apply(basis(s)[[1]],seq(1,2),round,digits=3)
 #' basis(s)
 #' @export
 setGeneric('basis<-', function(object,value) standardGeneric('basis<-'))
@@ -408,7 +416,7 @@ setGeneric('basis<-', function(object,value) standardGeneric('basis<-'))
 #' set.seed(1)
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 #' s <- vb_factorize(s, ranks=3)
-#' basis(s)[[1]] <- apply(basis(s)[[1]],1:2,round,digits=3)
+#' basis(s)[[1]] <- apply(basis(s)[[1]],c(1,2),round,digits=3)
 #' basis(s)
 #' @export
 setMethod('basis<-','scNMFSet',
@@ -427,7 +435,7 @@ setMethod('basis<-','scNMFSet',
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 #' s <- vb_factorize(s, ranks=3)
-#' coeff(s)[[1]] <- apply(coeff(s)[[1]],1:2,round,digits=2)
+#' coeff(s)[[1]] <- apply(coeff(s)[[1]],c(1,2),round,digits=2)
 #' coeff(s)
 #' @export
 setGeneric('coeff<-', function(object,value) standardGeneric('coeff<-'))
@@ -441,7 +449,7 @@ setGeneric('coeff<-', function(object,value) standardGeneric('coeff<-'))
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 #' s <- vb_factorize(s, ranks=3)
-#' coeff(s)[[1]] <- apply(coeff(s)[[1]],1:2,round,digits=2)
+#' coeff(s)[[1]] <- apply(coeff(s)[[1]],c(1,2),round,digits=2)
 #' coeff(s)
 #' @export
 setMethod('coeff<-','scNMFSet',
@@ -459,7 +467,7 @@ setMethod('coeff<-','scNMFSet',
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 #' s <- vb_factorize(s, ranks=3)
-#' measure(s)[,-1] <- apply(measure(s)[,-1],1:2, round,digits=3)
+#' measure(s)[,-1] <- apply(measure(s)[,-1], c(1,2), round,digits=3)
 #' measure(s)
 #' @return Input object with updated measure
 #' @export
@@ -473,7 +481,7 @@ setGeneric('measure<-', function(object,value) standardGeneric('measure<-'))
 #' @examples
 #' s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 #' s <- vb_factorize(s, ranks=3)
-#' measure(s)[,-1] <- apply(measure(s)[,-1],1:2, round,digits=3)
+#' measure(s)[,-1] <- apply(measure(s)[,-1], c(1,2), round,digits=3)
 #' measure(s)
 #' @return Input object with updated measure
 #' @export
@@ -511,7 +519,7 @@ setMethod('plot',signature="scNMFSet",definition =
        graphics::plot(x=mx$rank, y=mx$evidence, type='b',xlab='Rank', ylab=ylab,
             bty='n') 
      }
-     if(!bayes){   
+     else{   
        par(mfrow=c(1,3))
        graphics::plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
           ylim=c(min(mx$likelihood),max(mx$likelihood)), xlab='Rank',

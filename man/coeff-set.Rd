@@ -20,6 +20,6 @@ Access and modify coefficient matrices
 \examples{
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
 s <- vb_factorize(s, ranks=3)
-coeff(s)[[1]] <- apply(coeff(s)[[1]],1:2,round,digits=2)
+coeff(s)[[1]] <- apply(coeff(s)[[1]],c(1,2),round,digits=2)
 coeff(s)
 }

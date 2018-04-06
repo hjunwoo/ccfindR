@@ -4,19 +4,14 @@
 \alias{write_10x}
 \title{Write 10x data files}
 \usage{
-write_10x(object, dir, count = "matrix.mtx", genes = "genes.tsv",
-  barcodes = "barcodes.tsv", quote = FALSE)
+write_10x(object, dir, quote = FALSE)
 }
 \arguments{
 \item{object}{Object of class \code{scNMFSet} containing count data}
 
-\item{dir}{Directory where files are to be written}
-
-\item{count}{Output file name for count data (sparse matrix mtx format)}
-
-\item{genes}{Gene annotation data output file (tsv format)}
-
-\item{barcodes}{Cell annotation data output file (tsv format)}
+\item{dir}{Directory where files are to be written. Output file
+names are \code{matrix.mtx}, \code{genes.tsv},
+\code{barcodes.tsv}.}
 
 \item{quote}{Suppress quotation marks in output files.}
 }
@@ -24,13 +19,13 @@ write_10x(object, dir, count = "matrix.mtx", genes = "genes.tsv",
 \code{NULL}
 }
 \description{
-Use an object and write count and annotation files in 10x format
+Use an object and write count and annotation files in 10x format.
 }
 \examples{
 set.seed(1)
 x <- matrix(rpois(n=12,lambda=3),4,3)
-rownames(x) <- 1:4
-colnames(x) <- 1:3
-s <- scNMFSet(count=x,rowData=1:4,colData=1:3)
+rownames(x) <- seq_len(4)
+colnames(x) <- seq_len(3)
+s <- scNMFSet(count=x,rowData=seq_len(4),colData=seq_len(3))
 write_10x(s,dir='.')
 }

@@ -4,17 +4,10 @@
 \alias{read_10x}
 \title{Read 10x data and generate scNMF object}
 \usage{
-read_10x(dir, count = "matrix.mtx", genes = "genes.tsv",
-  barcodes = "barcodes.tsv", remove.zeros = TRUE)
+read_10x(dir, remove.zeros = TRUE)
 }
 \arguments{
 \item{dir}{Name of directory containing data files.}
-
-\item{count}{Name of count data file.}
-
-\item{genes}{Name of gene list file.}
-
-\item{barcodes}{Name of barcode list file.}
 
 \item{remove.zeros}{If \code{TRUE}, empty rows/columns are 
 removed.}
@@ -35,8 +28,8 @@ if omitted, will be assumed to be the default names present in
 \examples{
 library(S4Vectors)
 s <- scNMFSet(count=matrix(rpois(n=12,lambda=3),4,3))
-rowData(s) <- DataFrame(1:4)
-colData(s) <- DataFrame(1:3)
+rowData(s) <- DataFrame(seq_len(4))
+colData(s) <- DataFrame(seq_len(3))
 write_10x(s,dir='.')
 s <- read_10x(dir='.')
 s

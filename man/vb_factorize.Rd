@@ -80,6 +80,6 @@ When run with multiple values of \code{ranks}, factorization is
 set.seed(1)
 x <- simulate_whx(nrow=50,ncol=100,rank=5)
 s <- scNMFSet(x$x)
-s <- vb_factorize(s,ranks=2:8,nrun=5)
+s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 plot(s)
 }

@@ -5,7 +5,7 @@ newick <- function(tree, parent='1.1',string=''){
   if(string=='') root=TRUE
   else root=FALSE
   string <- paste0(string,'(')
-  for(i in 1:length(tree)){
+  for(i in seq_len(length(tree))){
     if(length(tree[[i]])==1){
       bl <- as.numeric(strsplit(tree[[i]],split='[.]')[[1]][1]) -
         as.numeric(strsplit(parent,split='[.]')[[1]][1])
@@ -26,7 +26,7 @@ newick <- function(tree, parent='1.1',string=''){
 
 # Recursive function for branching a tree
 branch.tree <- function(tree, parent.id, progenies){
-  for(i in 1:length(tree)){
+  for(i in seq_len(length(tree))){
     if(length(tree[[i]])==1){
       if(tree[[i]] == parent.id){
         tree[[i]] <- progenies
@@ -41,15 +41,12 @@ branch.tree <- function(tree, parent.id, progenies){
 }
 
 update.tree <- function(tree, parent.id, progenies){
-  for(i in 1:length(tree)){
+  for(i in seq_len(length(tree))){
     if(length(tree[[i]])==1){
-      if(tree[[i]] %in% parent.id){
-        idx <- which(tree[[i]]==parent.id)
-        tree[[i]] <- progenies[idx]
-      }
-    } else{
-      tree[[i]] <- update.tree(tree[[i]], parent.id, progenies)
-    }
+      if(tree[[i]] %in% parent.id)
+       tree[[i]] <- progenies[tree[[i]]==parent.id]
+    } else
+       tree[[i]] <- update.tree(tree[[i]], parent.id, progenies)
   }
   return(tree)
 }
@@ -63,42 +60,44 @@ update.tree <- function(tree, parent.id, progenies){
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
 #' s <- scNMFSet(x$x)
-#' s <- vb_factorize(s,ranks=2:8,nrun=5)
+#' s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 #' tree <- build_tree(s,rmax=5)
 #' tree
 #' @export
 build_tree <- function(object, rmax){
   
-  rmin <- 3
-  if(missing(rmax)) rmax <- object@ranks[length(object@ranks)]
-  id <- (which(object@ranks==rmin-1)):(which(object@ranks==rmax))
+  r0 <- 3
+  if(missing(rmax)) rmax <- ranks(object)[length(ranks(object))]
+  id <- seq(which(ranks(object) == r0-1),
+            which(ranks(object) == rmax))
   cluster <- NULL
   for(i in id){
-    h <- t(object@coeff[[i]])
-    cid <- apply(h,1,function(x){which(x==max(x))})
+    h <- coeff(object)[[i]]
+    cid <- apply(h,2,which.max)
     cluster <- cbind(cluster,cid)
-    colnames(cluster)[ncol(cluster)] <- paste0('r',object@ranks[i])
+    colnames(cluster)[ncol(cluster)] <- paste0('r', ranks(object)[i])
   }
   
-  rse <- seq(rmin,rmax,1)
+  rse <- seq(r0,rmax,1)
   y <- vector('list',length(rse))
   tree <- list('2.1','2.2') # initial split for rank 2
-  names(y) <- sapply(rse,toString)
+  names(y) <- rse
   for(n in rse){
     rank0 <- paste0('r',toString(n-1))
     rank1 <- paste0('r',toString(n))
     x0 <- cluster[, rank0]
     x1 <- cluster[, rank1]
     x <- table(x0,x1)
-    z <- apply(x, 2, function(x){which(x==max(x))})
-    z <- sapply(z,function(x){if(length(x)>1) x[1] else x})  # break ties
-    names(z) <- sapply(1:n,toString)
+    z <- apply(x, 2, which.max)
+    z <- vapply(z, function(x){if(length(x)>1) x[1] else x}, integer(1))
+        # break ties
+    names(z) <- seq_len(n)
     y[[toString(n)]] <- z
     
     w <- names(table(z))[table(z) > 1]  # parent id that splitted
     p <- mapply(function(x){names(z)[z==x]},w, SIMPLIFY=FALSE)
     
-    for(i in 1:length(w)){
+    for(i in seq_len(length(w))){
       np <- paste(n,p[[i]],sep='.')
       split <- as.list(np)
       tree <- branch.tree(tree, paste(n-1,w[i],sep='.'), split)
@@ -122,14 +121,14 @@ build_tree <- function(object, rmax){
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
 #' s <- scNMFSet(x$x)
-#' s <- vb_factorize(s,ranks=2:8,nrun=5)
+#' s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 #' tree <- build_tree(s,rmax=5)
-#' tree <- rename_tips(tree,rank=5,tip.labels=letters[1:5])
+#' tree <- rename_tips(tree,rank=5,tip.labels=letters[seq_len(5)])
 #' tree 
 #' @export
 rename_tips <- function(tree, rank, tip.labels){
   
-  for(i in 1:length(tree)){
+  for(i in seq_len(length(tree))){
     if(length(tree[[i]])==1){  # a tip
       x <- strsplit(tree[[i]], split='[.]')[[1]]
       if(as.numeric(x[1])==rank){
@@ -158,7 +157,7 @@ rename_tips <- function(tree, rank, tip.labels){
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
 #' s <- scNMFSet(x$x)
-#' s <- vb_factorize(s,ranks=2:8,nrun=5)
+#' s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 #' tree <- build_tree(s,rmax=5)
 #' plot_tree(tree)
 #' @export

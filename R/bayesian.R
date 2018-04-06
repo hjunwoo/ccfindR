@@ -41,7 +41,10 @@ hyper_update <- function(hyper.update, wh, hyper, Niter=100, Tol=1e-4){
       i <- i+1
     }
     if(i==Niter) stop('Hyper-parameter update failed to converge')
-   } else{aw1 <- aw0; ah1 <- ah0}
+   } else{
+     aw1 <- aw0
+     ah1 <- ah0
+   }
    if(hyper.update[2]) bw1 <- ewm
    else bw1 <- bw0
    if(hyper.update[4]) bh1 <- ehm
@@ -114,10 +117,10 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper){
    w <- matrix(stats::rgamma(n=nrow*rank, shape=hyper$aw, 
            scale=hyper$bw/hyper$aw), nrow=nrow,ncol=rank)
    rownames(w) <- rownames(mat)
-   colnames(w) <- 1:rank
+   colnames(w) <- seq_len(rank)
    h <- matrix(stats::rgamma(n=rank*ncol, shape=hyper$ah, 
            scale=hyper$bh/hyper$ah), nrow=rank,ncol=ncol)
-   rownames(h) <- 1:rank
+   rownames(h) <- seq_len(rank)
    colnames(h) <- colnames(mat)
   
    list(w=w, h=h, lw=w, lh=h, ew=w, eh=h)
@@ -175,7 +178,7 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper){
 #' set.seed(1)
 #' x <- simulate_whx(nrow=50,ncol=100,rank=5)
 #' s <- scNMFSet(x$x)
-#' s <- vb_factorize(s,ranks=2:8,nrun=5)
+#' s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
 #' plot(s)
 #' @export
 vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, progress.bar=TRUE, 
@@ -200,13 +203,15 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, progress.bar=TRUE,
    cons <- vector('list',nrank)
    awdat <- bwdat <- ahdat <- bhdat <- rdat <- rep(0, nrank)
   
-   for(irank in 1:nrank){
+   for(irank in seq_len(nrank)){
     
      rank <- ranks[irank]
      if(verbose > 0) cat('Rank ',rank,'\n',sep='')
     
-     aw <- gamma.a[1]; ah <- gamma.a[length(gamma.a)]
-     bw <- gamma.b[1]; bh <- gamma.b[length(gamma.b)]
+     aw <- gamma.a[1]
+     ah <- gamma.a[length(gamma.a)]
+     bw <- gamma.b[1]
+     bh <- gamma.b[length(gamma.b)]
     
      hyper <- hyper0 <- list(aw=aw, bw=bw, ah=ah, bh=bh)  
     # list of hyperparameter matrices
@@ -218,7 +223,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, progress.bar=TRUE,
      rmax <- -Inf
      if(verbose == 1 & progress.bar) 
        pb <- utils::txtProgressBar(style = 3)
-     for(irun in 1:nrun){
+     for(irun in seq_len(nrun)){
         
       if(verbose >=2 ) cat('Run #',irun,':\n')
       else if(verbose == 1 & progress.bar) 
@@ -226,7 +231,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, progress.bar=TRUE,
       hyper <- hyper0  
       wh <- vb_init(nrow, ncol, mat, rank, hyper=hyper)
       lk0 <- 0
-      for(it in 1:Itmax){
+      for(it in seq_len(Itmax)){
         wh <- vbnmf_updateR(mat, wh, rank, estimator=estimator, 
                             hyper, fudge=fudge)
         if(it > hyper.update.n0 & it%%hyper.update.dn==0) 
