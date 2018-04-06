@@ -1,3 +1,7 @@
-ccfindR 0.9.0
+ccfindR 0.99.4 (Release data: 2018-04-06)
+================
 
-Full chagelog
+Changes:
+
+* Split plot functionality from filter_genes() into plot_genes().
+* Removed file name arguments from read_10x() and write_10x().
