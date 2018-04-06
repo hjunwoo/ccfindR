@@ -1,5 +1,5 @@
 Package: ccfindR
-Version: 0.99.42
+Version: 0.99.43
 Date: 2018-04-06
 Title: Cancer Clone Finder
 Authors@R: c(person('Jun','Woo',role=c('aut','cre'),email='jwoo@umn.edu'),
@@ -34,7 +34,6 @@ Description: A collection of tools for cancer single cell RNA-seq analysis.
     rank-based trees for cell clusters.
 License: GPL (>= 2)
 NeedsCompilation: no
-Packaged: 2018-01-11 19:17:23 UTC; jun
 RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
