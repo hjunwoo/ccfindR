@@ -4,14 +4,19 @@
 \alias{write_10x}
 \title{Write 10x data files}
 \usage{
-write_10x(object, dir, quote = FALSE)
+write_10x(object, dir, count = "matrix.mtx", genes = "genes.tsv",
+  barcodes = "barcodes.tsv", quote = FALSE)
 }
 \arguments{
 \item{object}{Object of class \code{scNMFSet} containing count data}
 
-\item{dir}{Directory where files are to be written. Output file
-names are \code{matrix.mtx}, \code{genes.tsv},
-\code{barcodes.tsv}.}
+\item{dir}{Directory where files are to be written.}
+
+\item{count}{File name for count matrix.}
+
+\item{genes}{File name for gene annotation.}
+
+\item{barcodes}{File name for cell annotation.}
 
 \item{quote}{Suppress quotation marks in output files.}
 }

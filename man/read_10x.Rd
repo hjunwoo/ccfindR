@@ -4,10 +4,17 @@
 \alias{read_10x}
 \title{Read 10x data and generate scNMF object}
 \usage{
-read_10x(dir, remove.zeros = TRUE)
+read_10x(dir, count = "matrix.mtx", genes = "genes.tsv",
+  barcodes = "barcodes.tsv", remove.zeros = TRUE)
 }
 \arguments{
 \item{dir}{Name of directory containing data files.}
+
+\item{count}{Name of count matrix file.}
+
+\item{genes}{Name of gene annotation file.}
+
+\item{barcodes}{Name of cell annotation file.}
 
 \item{remove.zeros}{If \code{TRUE}, empty rows/columns are 
 removed.}
@@ -20,9 +27,9 @@ Read count, gene, and barcode annotation data in 10x format
 and create an object of class \code{scNMFSet}.
 }
 \details{
-Filenames for \code{count}, \code{genes}, and \code{barcodes}, 
-if omitted, will be assumed to be the default names present in 
-\code{dir}. Count data are in sparse "Matrix Market" format 
+Files for \code{count}, \code{genes}, and \code{barcodes} are
+assumed to be present in \code{dir}. 
+Count data are in sparse "Matrix Market" format 
 (\url{https://math.nist.gov/MatrixMarket/formats.html}).
 }
 \examples{

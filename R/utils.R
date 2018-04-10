@@ -3,12 +3,15 @@
 #' Read count, gene, and barcode annotation data in 10x format 
 #' and create an object of class \code{scNMFSet}.
 #' 
-#' Filenames for \code{count}, \code{genes}, and \code{barcodes}, 
-#' if omitted, will be assumed to be the default names present in 
-#' \code{dir}. Count data are in sparse "Matrix Market" format 
+#' Files for \code{count}, \code{genes}, and \code{barcodes} are
+#' assumed to be present in \code{dir}. 
+#' Count data are in sparse "Matrix Market" format 
 #' (\url{https://math.nist.gov/MatrixMarket/formats.html}).
 #' 
 #' @param dir Name of directory containing data files.
+#' @param count Name of count matrix file.
+#' @param genes Name of gene annotation file.
+#' @param barcodes Name of cell annotation file.
 #' @param remove.zeros If \code{TRUE}, empty rows/columns are 
 #'        removed.
 #' @examples
@@ -22,17 +25,18 @@
 #' @return Object of class \code{scNMFSet}
 #' @export
 #' @import SingleCellExperiment
-read_10x <- function(dir, remove.zeros=TRUE){
+read_10x <- function(dir, count='matrix.mtx', genes='genes.tsv',
+                     barcodes='barcodes.tsv', remove.zeros=TRUE){
   
   if(!dir.exists(dir)) stop(cat('Input directory',dir,'does not exist\n'))
-  count <- paste0(dir,'/matrix.mtx')
+  count <- paste0(dir, '/', count)
   if(!file.exists(count)) stop(cat('Count file',count,'does not exist\n'))
   Mat <- as(Matrix::readMM(count),'dgCMatrix')
-  genes <- paste0(dir,'/genes.tsv')
+  genes <- paste0(dir, '/', genes)
   if(!file.exists(genes)) 
     stop(cat('Count file',genes,'does not exist\n'))
   glist <- utils::read.table(genes,stringsAsFactors=FALSE)
-  barcodes <- paste0(dir,'/barcodes.tsv')
+  barcodes <- paste0(dir,'/', barcodes)
   if(!file.exists(barcodes)) 
     stop(cat('Count file',barcodes,'does not exist\n'))
   clist <- utils::read.table(barcodes,stringsAsFactors=FALSE)
@@ -710,9 +714,10 @@ simulate_whx <- function(nrow, ncol, rank, aw=0.1, bw=1, ah=0.1, bh=1){
 #' Use an object and write count and annotation files in 10x format.
 #'  
 #' @param object Object of class \code{scNMFSet} containing count data
-#' @param dir Directory where files are to be written. Output file
-#'            names are \code{matrix.mtx}, \code{genes.tsv},
-#'            \code{barcodes.tsv}.
+#' @param dir Directory where files are to be written. 
+#' @param count File name for count matrix. 
+#' @param genes File name for gene annotation.
+#' @param barcodes File name for cell annotation.
 #' @param quote Suppress quotation marks in output files.
 #' @return \code{NULL}
 #' @examples
@@ -723,11 +728,13 @@ simulate_whx <- function(nrow, ncol, rank, aw=0.1, bw=1, ah=0.1, bh=1){
 #' s <- scNMFSet(count=x,rowData=seq_len(4),colData=seq_len(3))
 #' write_10x(s,dir='.')
 #' @export
-write_10x <- function(object, dir, quote=FALSE){
+write_10x <- function(object, dir, count='matrix.mtx',
+                      genes='genes.tsv', barcodes='barcodes.tsv',
+                      quote=FALSE){
   
-  count <- paste0(dir,'/matrix.mtx')
-  genes <- paste0(dir,'/genes.tsv')
-  barcodes <- paste0(dir,'/barcodes.tsv')
+  count <- paste0(dir, '/', count)
+  genes <- paste0(dir, '/', genes)
+  barcodes <- paste0(dir, '/', barcodes)
   x <- counts(object)
   x <- as(x,'sparseMatrix')
   Matrix::writeMM(as(x,'Matrix'),file=count)

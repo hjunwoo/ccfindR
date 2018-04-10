@@ -180,14 +180,14 @@ Cell Ranger pipeline
 (https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger) can also be read:
 ```{r}
 # read 10x files
-sc <- read_10x(dir = dir)
+sc <- read_10x(dir = dir, count = 'matrix.mtx', genes = 'genes.tsv',
+               barcodes = 'barcodes.tsv')
 sc
 ```
 
 The parameter `dir` is the directory containing the files. 
-Expected file names are `matrix.mtx`, `genes.tsv`, 
-and `barcodes.tsv` for the count, gene, and
-cell annotations, respectively. The function returns an `scNMFSet` object. 
+Filenames above are defaults and can be omitted.
+The function returns an `scNMFSet` object. 
 By default, any row or column entirely consisting of zeros in `counts` and the
 corresponding elements in `rowData` and `colData` slots will be removed. 
 This feature can be turned off by `remove.zeros = FALSE`.
