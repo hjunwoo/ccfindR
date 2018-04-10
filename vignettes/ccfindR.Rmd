@@ -301,7 +301,7 @@ to likelihood smaller than `Tol`).
 To reduce the dependence of final estimates for $\sf W$ and $\sf H$ on 
 initial guess, inferences need to be repeated for many different initializations:
 ```{r, cache=T}
-sc <- factorize(sc, ranks = 3, nrun = 10, verbose = 2)
+sc <- factorize(sc, ranks = 3, nrun = 5, verbose = 2)
 ```
 
 After each run, the residual and dispersion are printed, and the global 
