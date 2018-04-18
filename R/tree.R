@@ -87,7 +87,9 @@ build_tree <- function(object, rmax){
     rank1 <- paste0('r',toString(n))
     x0 <- cluster[, rank0]
     x1 <- cluster[, rank1]
-    x <- table(x0,x1)
+#   x <- table(x0,x1)
+    x <- table(factor(x0, levels=seq_len(n-1)),
+               factor(x1, levels=seq_len(n)))
     z <- apply(x, 2, which.max)
     z <- vapply(z, function(x){if(length(x)>1) x[1] else x}, integer(1))
         # break ties
