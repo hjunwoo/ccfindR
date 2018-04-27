@@ -238,7 +238,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, progress.bar=TRUE,
           hyper <- hyper_update(hyper.update, wh, hyper, Niter=100, 
                                 Tol=1e-3)
         if(is.na(wh$lkh)) break
-        if(it>1) if(abs(1-wh$lkh/lk0) < Tol) break
+        if(it>1) if(wh$lkh>=lk0) if(abs(1-wh$lkh/lk0) < Tol) break
         lk0 <- wh$lkh
         if(verbose >= 3) cat(it,': log(evidence) = ',lk0,', aw = ',hyper$aw,
           ', bw = ',hyper$bw,', ah = ',hyper$ah,', bh = ',hyper$bh,
