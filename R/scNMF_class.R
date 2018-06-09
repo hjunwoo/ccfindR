@@ -306,7 +306,7 @@ setValidity('scNMFSet', function(object){
 #' rowData(s) 
 #' @export
 setMethod('rowData','scNMFSet', 
-          function(x){
+          function(x, use.names=TRUE){
             callNextMethod()})
 #' Gene annotation assignment
 #' 
