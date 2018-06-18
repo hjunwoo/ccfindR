@@ -8,7 +8,7 @@ vb_factorize(object, ranks = 2, nrun = 1, verbose = 2,
   progress.bar = TRUE, estimator = "mean", Itmax = 10000,
   hyper.update = rep(TRUE, 4), gamma.a = 1, gamma.b = 1, Tol = 1e-05,
   hyper.update.n0 = 10, hyper.update.dn = 1, connectivity = TRUE,
-  fudge = NULL)
+  fudge = NULL, ncores = 1, bootstrap = FALSE)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object containing count matrix.}
@@ -57,6 +57,11 @@ elements to avoid singularity. If \code{fudge = NULL} (default),
 it will be replaced by \code{.Machine$double.eps}. 
 Can be set to 0 to skip 
 regularization.}
+
+\item{ncores}{Number of processors (cores) to run. If \code{ncores > 1},
+parallelization is attempted.}
+
+\item{bootstrap}{Bootstrap sample each row from original data}
 }
 \value{
 Object of class \code{scNMFSet} with factorization slots filled.

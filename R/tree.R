@@ -1,5 +1,9 @@
-# generate Newick format tree string from tree list object 
-
+#' Generate Newick format tree string from tree list object 
+#' @param tree Tree list object from \code{\link{build_tree}}
+#' @param parent Parent ID 
+#' @param string Newick string of parent tree
+#' @return String of newick tree
+#' @export
 newick <- function(tree, parent='1.1',string=''){
   
   if(string=='') root=TRUE

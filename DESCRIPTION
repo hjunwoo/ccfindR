@@ -1,6 +1,6 @@
 Package: ccfindR
-Version: 1.1.0
-Date: 2018-04-10
+Version: 1.1.1
+Date: 2018-06-14
 Title: Cancer Clone Finder
 Authors@R: c(person('Jun','Woo',role=c('aut','cre'),email='jwoo@umn.edu'),
              person('Jinhua','Wang',role='aut',email='wangjh@umn.edu'))
@@ -18,7 +18,8 @@ Imports: stats,
          grDevices,
          gtools,
          RColorBrewer, 
-         ape
+         ape,
+         Rmpi
 biocViews: Transcriptomics, 
            SingleCell, 
            Bayesian, 

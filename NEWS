@@ -1,3 +1,15 @@
+ccfindR 1.1.1
+================
+
+Changes:
+
+* Changed default: filter_genes(...,rescue.genes=FALSE)
+* Changed filter_genes(), vmr.min action from vmr >= vmr.min to vmr > vmr.min 
+  (removes genes with vmr=0) 
+* Added parallel run for vb_factorize(..., ncores=10)
+* Added bootstrap option to vb_factorize(..., bootstrap=FALSE)
+
+
 ccfindR 0.99.4 (Release data: 2018-04-06)
 ================
 

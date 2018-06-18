@@ -117,6 +117,7 @@ filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE,
 #' @param rescue.genes Selected additional genes whose (non-zero)
 #'        count distributions have at least one mode. 
 #' @param plot Plot the distribution of no. of cells expressed vs. VMR.        
+#' @param log Axis in log-scale, \code{c('x','y','xy')}.
 #' @param progress.bar Display progress of mode-gene scan or VMR
 #'    calculation with \code{save.memory = TRUE}.
 #' @param save.memory For a very large number of cells, calculate VMR 
@@ -132,8 +133,8 @@ filter_cells <- function(object, umi.min=0, umi.max=Inf, plot=TRUE,
 #' @export
 filter_genes <- function(object, markers= NULL, vmr.min=0, 
                          min.cells.expressed=0, max.cells.expressed=Inf, 
-                         rescue.genes=TRUE, progress.bar=TRUE,
-                         save.memory=FALSE, plot=TRUE, cex=0.5){
+                         rescue.genes=FALSE, progress.bar=TRUE,
+                         save.memory=FALSE, plot=TRUE, log='xy',cex=0.5){
   
   selected_genes <- variable_genes <- rep(FALSE, nrow(object))
   if(is.null(markers)) marker_genes=NULL
@@ -153,7 +154,7 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
   vmr <- calc_vmr(count, save.memory=save.memory, 
                   progress.bar=progress.bar)
   
-  variable_genes <- vmr.min <= vmr & 
+  variable_genes <- vmr.min < vmr & 
             min.cells.expressed <= ncexpr & 
             ncexpr <= max.cells.expressed
   if(rescue.genes & sum(variable_genes) < ngenes){
@@ -185,7 +186,7 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
   
   if(plot) plot_genes(object, vmr=vmr, ncexpr=ncexpr, 
     selected_genes=selected_genes, variable_genes=variable_genes,
-    mode_genes=mode_genes, marker_genes=marker_genes, cex=cex) 
+    mode_genes=mode_genes, marker_genes=marker_genes, log=log,cex=cex) 
   
   return(object[selected_genes,])
 }
@@ -238,6 +239,7 @@ calc_vmr <- function(count, save.memory=FALSE, progress.bar=TRUE){
 #' @param progress.bar Display progress bar for VMR calculation.
 #'        Not used when gene lists are supplied.
 #' @param cex Symbol size for genes (supplied to \code{plot()}).
+#' @param log Axis in log-scale, \code{c('x','y','xy')}.
 #' @return \code{NULL}
 #' @examples
 #' set.seed(1)
@@ -247,24 +249,26 @@ calc_vmr <- function(count, save.memory=FALSE, progress.bar=TRUE){
 plot_genes <- function(object, vmr=NULL, ncexpr=NULL, selected_genes=NULL, 
                   variable_genes=NULL, mode_genes=NULL, 
                   marker_genes=NULL, save.memory=FALSE, progress.bar=TRUE, 
-                  cex=0.5){
+                  log='xy', cex=0.5){
   
-  if(is.null(ncexpr)){  # no. of cells expressing each gene
+  if(is.null(ncexpr) | is.null(vmr)){  # no. of cells expressing each gene
     ncexpr <- Matrix::rowSums(counts(object) > 0) 
     count <- counts(object)
     count <- count[ncexpr>0,]
     ncexpr <- ncexpr[ncexpr>0]
   }
-  if(is.null(vmr)) 
+  if(is.null(vmr))
     vmr <- calc_vmr(count, save.memory=save.memory, progress.bar=progress.bar)
   
-  ngenes <- nrow(object)
+  ncexpr <- ncexpr[vmr>0]
+  vmr <- vmr[vmr>0]
+  ngenes <- length(vmr)
   if(is.null(selected_genes)) selected_genes <- rep(FALSE, ngenes)
   
   xlim=c(min(ncexpr),max(ncexpr))
   if(sum(selected_genes) < ngenes | !is.null(variable_genes)){
     graphics::plot(x=ncexpr[!selected_genes], y=vmr[!selected_genes], 
-         xlim=xlim,ylim=c(min(vmr),max(vmr)), log='y', pch=21, 
+         xlim=xlim,ylim=c(min(vmr),max(vmr)), log=log, pch=21, 
         col='gray', bg='white', xlab='No. of cells expressed', ylab='VMR', 
         main='Genes', cex=cex, bty='n')
     if(!is.null(variable_genes))
@@ -280,7 +284,7 @@ plot_genes <- function(object, vmr=NULL, ncexpr=NULL, selected_genes=NULL,
   }else{
     graphics::plot(x=ncexpr[variable_genes], y=vmr[variable_genes], 
         xlim=xlim,ylim=c(min(vmr),max(vmr)), pch=21, bg='white', 
-        cex=cex, lwd=0.5, log='y', col='gray', xlab='No. of cells expressed', 
+        cex=cex, lwd=0.5, log=log, col='gray', xlab='No. of cells expressed', 
         ylab='VMR', main='Genes', bty='n')
     if(!is.null(marker_genes)) if(sum(marker_genes) > 0)
         graphics::points(x=ncexpr[marker_genes], y=vmr[marker_genes], pch=21, 
@@ -412,6 +416,77 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
                  col = RColorBrewer::brewer.pal(n=9,'YlOrRd'),...)
 }
 
+#' Plot heatmap of basis matrix
+#' 
+#' Generate heatmap of features derived from factorization of count data.
+#' #' @examples  
+#' set.seed(1)
+#' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
+#' rownames(x) <- seq_len(10)
+#' colnames(x) <- seq_len(100)
+#' s <- scNMFSet(count=x,rowData=seq_len(10), colData=seq_len(100))
+#' s <- vb_factorize(s,ranks=seq(2,5))
+#' plot(s)
+#' feature_map(s, rank=3)
+#' @export
+feature_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
+                        log=TRUE, max.per.cluster = 10, Colv=NA,
+                        feature.names=NULL, perm=NULL,
+                        main='Feature map', cscale=NULL, 
+                        cex.cluster=1, cex.feature=1, mar=NULL, ...){
+  
+  if(is.null(cscale)) cscale <- RColorBrewer::brewer.pal(n=9,'YlOrRd')
+  if(missing(rank)) rank <- ranks(object)[1] # by default the first rank
+  if(is.null(perm)) perm <- seq_len(rank)
+  w <- basis(object)[ranks(object)==rank][[1]][,perm]
+  colnames(w) <- seq_len(rank)
+  if(!is.null(feature.names)) rownames(w) <- feature.names
+  if(log) w <- w/exp(rowMeans(log(w)))
+  else w <- w - rowMeans(w)
+  
+  meta <- meta_genes(object, rank=rank, max.per.cluster=max.per.cluster)
+  meta <- meta[perm]
+  if(!is.null(markers)){
+    markers <- markers[markers %in% rownames(w)]
+    markers <- markers[!(markers %in% unlist(meta))] # markers in meta-gene list
+  }
+  gid <- apply(w[markers,],1, which.max)
+  
+  w1 <- w[c(unlist(meta),markers),seq_len(rank)]
+  idx <- c()
+  step <- c()
+  for(k in seq_len(rank)){
+    tmp <- meta[[k]]
+    tmp <- c(tmp, markers[gid==k])
+    step <- c(step, length(tmp))
+    idx <- c(idx,tmp)
+  }
+  w1 <- w1[idx,]
+  nc <- ncol(w1)
+  nr <- nrow(w1)
+  
+  x <- sweep(w1, 1, rowMeans(w1), check.margin=TRUE)
+  sx <- apply(x,1,sd)
+  x <- sweep(x, 1, sx, '/', check.margin=FALSE)
+  
+  if(is.null(mar)) mar <- c(5.1,4.1,4.1,4)
+  par(mar=mar)
+  image(seq_len(nc), seq_len(nr), t(x)[,seq(nr,1)], xlim=0.5+c(0,nc),
+        ylim=0.5+c(0,nr), axes=FALSE, xlab='',ylab='',col=cscale)
+  axis(1,seq_len(nc), labels=seq_len(nc), las=1, line=-1.0,tick=0, 
+       cex.axis=cex.cluster)
+  col <- rep('black',nr)
+  text(x=rank+0.7,y=seq(nr,1), labels=rownames(w1), col=col,xpd=NA, 
+       cex=cex.feature, adj=0)
+  y <- nrow(w1) + 0.5
+  segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
+  for(k in seq_len(rank)){
+    text(x=-0.5, y=y-1, label=k, cex=cex.cluster, xpd=NA)
+    y <- y-step[k]
+    segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
+  }
+  title(adj=0.5,main=main)
+}
 #' Plot heatmap of clustering coefficient matrix
 #' 
 #' Retrieve a coefficient matrix \code{H}

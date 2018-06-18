@@ -6,7 +6,7 @@
 \usage{
 plot_genes(object, vmr = NULL, ncexpr = NULL, selected_genes = NULL,
   variable_genes = NULL, mode_genes = NULL, marker_genes = NULL,
-  save.memory = FALSE, progress.bar = TRUE, cex = 0.5)
+  save.memory = FALSE, progress.bar = TRUE, log = "xy", cex = 0.5)
 }
 \arguments{
 \item{object}{Object containing count data}
@@ -28,6 +28,8 @@ method to save memory. Not used when gene lists are supplied.}
 
 \item{progress.bar}{Display progress bar for VMR calculation.
 Not used when gene lists are supplied.}
+
+\item{log}{Axis in log-scale, \code{c('x','y','xy')}.}
 
 \item{cex}{Symbol size for genes (supplied to \code{plot()}).}
 }
