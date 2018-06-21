@@ -433,7 +433,7 @@ feature_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
                         log=TRUE, max.per.cluster = 10, Colv=NA,
                         feature.names=NULL, perm=NULL,
                         main='Feature map', cscale=NULL, 
-                        cex.cluster=1, cex.feature=1, mar=NULL, ...){
+                        cex.cluster=1, cex.feature=0.5, mar=NULL, ...){
   
   if(is.null(cscale)) cscale <- RColorBrewer::brewer.pal(n=9,'YlOrRd')
   if(missing(rank)) rank <- ranks(object)[1] # by default the first rank
@@ -481,7 +481,7 @@ feature_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
   y <- nrow(w1) + 0.5
   segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
   for(k in seq_len(rank)){
-    text(x=-0.5, y=y-1, label=k, cex=cex.cluster, xpd=NA)
+    text(x=-0.1, y=y-1, label=k, cex=cex.cluster, xpd=NA)
     y <- y-step[k]
     segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
   }

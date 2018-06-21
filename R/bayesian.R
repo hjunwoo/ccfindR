@@ -169,8 +169,6 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper){
 #'        regularization.
 #' @param ncores Number of processors (cores) to run. If \code{ncores > 1},
 #'        parallelization is attempted.
-#' @param bootstrap Bootstrap sample each row from original data
-#' 
 #' @return Object of class \code{scNMFSet} with factorization slots filled.
 #' 
 #' @details When run with multiple values of \code{ranks}, factorization is 
@@ -191,10 +189,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                          gamma.a=1, gamma.b=1, Tol=1e-5, 
                          hyper.update.n0=10, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
-                         ncores=1, bootstrap=FALSE){
-  
-  if(bootstrap) counts(object) <- 
-      bootstrap(counts(object))
+                         ncores=1){
    mat <- counts(object) # S4 class scNMFSet
    nrank <- length(ranks)
   
@@ -203,7 +198,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    if(nullr>0) stop('Input matrix contains empty rows')
    if(nullc>0) stop('Input matrix contains empty columns')
    
-    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
+   bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
                   gamma.b=gamma.b, connectivity=connectivity, Itmax=Itmax,
                   estimator=estimator, fudge=fudge, hyper.update=hyper.update,
                   hyper.update.n0=hyper.update.n0, ncores=ncores,
@@ -322,8 +317,13 @@ vb_iterate <- function(irun, bundle){
    return(vb)
 }
 
-bootstrap <- function(mat){
+#' Bootstrap sample count matrix
+#' @param object Main object whose count matrix is to be randomized
+#' @return Ojbect with the updated count matrix
+#' @export
+bootstrap <- function(object){
   
+   mat <- counts(object)
    m <- nrow(mat)
    n <- ncol(mat)
    
@@ -334,5 +334,7 @@ bootstrap <- function(mat){
      z <- table(factor(y,levels=seq_len(m)))
      mat[,k] <- z
    }
-   return(mat)
+   
+   counts(object) <- mat
+   return(object)
 }
