@@ -88,7 +88,9 @@ vbnmf_updateR <- function(x, wh, r, estimator, hyper, fudge=NULL){
     
    wth <- lw %*% lh
    U1 <- -ew %*% eh - lgamma(x+1) - x*((((lw*log(lw))%*%lh)
-          +lw%*%(lh*log(lh)))/wth - log(wth))
+         +lw%*%(lh*log(lh)))/wth - log(wth))
+#   U1 <- -ew %*% eh - lgamma(x+1) - x*((((lw*log(lw))%*%lh) + 
+#          lw%*%(lh*log(lh)))/wth - log(wth))
    U2 <- -(aw/bw)*ew - lgamma(aw) + aw*log(aw/bw) + 
     alw*(1+log(bew))+lgamma(alw)
    U3 <- -(ah/bh)*eh - lgamma(ah) + ah*log(ah/bh) + 
@@ -327,13 +329,21 @@ bootstrap <- function(object){
    m <- nrow(mat)
    n <- ncol(mat)
    
-   for(k in seq_len(m)){
-     x <- mat[,k]
+#   for(k in seq_len(n)){
+#     x <- mat[,k]
+#     prob <- x/sum(x)
+#     y <- sample(seq_len(m), size=sum(x), replace=TRUE, prob=prob)
+#     z <- table(factor(y,levels=seq_len(m)))
+#     z <- as.vector(z)
+#     print(k)
+#     mat[,k] <- z
+#   }
+   mat <- apply(mat, 2, function(x){
      prob <- x/sum(x)
-     y <- sample(seq_len(m), size=sum(x), replace=TRUE, prob=prob)
+     y <- sample(seq_len(m),size=sum(x),replace=TRUE, prob=prob)
      z <- table(factor(y,levels=seq_len(m)))
-     mat[,k] <- z
-   }
+     as.vector(z)
+   })
    
    counts(object) <- mat
    return(object)
