@@ -19,7 +19,8 @@ Imports: stats,
          gtools,
          RColorBrewer, 
          ape,
-         Rmpi
+         Rmpi,
+         irlba
 biocViews: Transcriptomics, 
            SingleCell, 
            Bayesian, 

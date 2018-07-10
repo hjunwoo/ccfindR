@@ -114,14 +114,57 @@ vbnmf_updateR <- function(x, wh, r, estimator, hyper, fudge=NULL){
 }
 
 # Initialize bNMF inference
-vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper){
+vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
   
-   w <- matrix(stats::rgamma(n=nrow*rank, shape=hyper$aw, 
+   if(initializer=='random'){
+     w <- matrix(stats::rgamma(n=nrow*rank, shape=hyper$aw, 
            scale=hyper$bw/hyper$aw), nrow=nrow,ncol=rank)
+     h <- matrix(stats::rgamma(n=rank*ncol, shape=hyper$ah, 
+           scale=hyper$bh/hyper$ah), nrow=rank,ncol=ncol)
+   } else if(initializer=='svd'){
+     w <- matrix(0, nrow=nrow, ncol=rank)
+     h <- matrix(0, nrow=rank, ncol=ncol)
+     s <- svd(mat, nu=rank, nv=rank)
+#    s <- irlba::irlba(mat, rank)
+     d1 <- sqrt(s$d[1])
+     w[,1] <- d1*s$u[,1]
+     sgn <- sign(w[1,1])
+     if(sgn<0) w <- -w
+     h[1,] <- sgn*d1*s$v[,1]
+     for(k in seq(2,rank)){
+       x <- s$u[,k]
+       y <- s$v[,k]
+       xp <- vapply(x,function(x){if(x>0) x else 0},numeric(1))
+       yp <- vapply(y,function(x){if(x>0) x else 0},numeric(1))
+       xn <- vapply(x,function(x){if(x<0) -x else 0},numeric(1))
+       yn <- vapply(y,function(x){if(x<0) -x else 0},numeric(1))
+       xpnrm <- sqrt(sum(xp^2))
+       ypnrm <- sqrt(sum(yp^2))
+       mp <- xpnrm*ypnrm
+       xnnrm <- sqrt(sum(xp^2))
+       ynnrm <- sqrt(sum(yp^2))
+       mn <- xnnrm*ynnrm
+       if(mp>=mn){
+         u <- xp/xpnrm
+         v <- yp/ypnrm
+         sig <- mp
+       }else{
+         u <- xn/xnnrm
+         v <- yn/ynnrm
+         sig <- mn
+       }
+       w[,k] <- sqrt(s$d[k]*sig)*u
+       h[k,] <- sqrt(s$d[k]*sig)*t(v)
+     }
+   } else if(initializer=='svd2'){
+#    s <- svd(mat, nu=rank, nv=rank)
+     s <- irlba::irlba(mat, rank)
+     w <- abs(s$u)
+     h <- abs(diag(s$d[seq_len(rank)]) %*% t(s$v))
+   }else stop('Unknown initializer')
+  
    rownames(w) <- rownames(mat)
    colnames(w) <- seq_len(rank)
-   h <- matrix(stats::rgamma(n=rank*ncol, shape=hyper$ah, 
-           scale=hyper$bh/hyper$ah), nrow=rank,ncol=ncol)
    rownames(h) <- seq_len(rank)
    colnames(h) <- colnames(mat)
   
@@ -164,6 +207,8 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper){
 #' @param hyper.update.dn Step intervals for hyperparameter updates.
 #' @param connectivity If \code{TRUE}, connectivity and dispersion will
 #'        be calculated after each run. Can be turned off to save memory.
+#' @param initializer If \code{'random'}, randomized initial conditions; 
+#'        \code{'svd'} for singular value decomposed initial condition.
 #' @param fudge Small positive number used as lower bound for factor matrix 
 #'        elements to avoid singularity. If \code{fudge = NULL} (default), 
 #'        it will be replaced by \code{.Machine$double.eps}. 
@@ -187,13 +232,17 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper){
 #' @export
 vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, 
                          progress.bar=TRUE, estimator='mean', 
+                         initializer='random',
                          Itmax=10000, hyper.update=rep(TRUE,4), 
                          gamma.a=1, gamma.b=1, Tol=1e-5, 
-                         hyper.update.n0=10, hyper.update.dn=1, 
+                         hyper.update.n0=0, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
                          ncores=1){
    mat <- counts(object) # S4 class scNMFSet
    nrank <- length(ranks)
+   
+   if(initializer=='svd' & nrun > 1)
+     stop('SVD initializer does not require nrun > 1')
   
    nullr <- sum(Matrix::rowSums(mat)==0)
    nullc <- sum(Matrix::colSums(mat)==0)
@@ -201,10 +250,10 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    if(nullc>0) stop('Input matrix contains empty columns')
    
    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
-                  gamma.b=gamma.b, connectivity=connectivity, Itmax=Itmax,
-                  estimator=estimator, fudge=fudge, hyper.update=hyper.update,
-                  hyper.update.n0=hyper.update.n0, ncores=ncores,
-                  hyper.update.dn=hyper.update.dn, Tol=Tol)
+                  gamma.b=gamma.b, initializer=initializer, connectivity=connectivity, 
+                  Itmax=Itmax, estimator=estimator, fudge=fudge, 
+                  hyper.update=hyper.update, hyper.update.n0=hyper.update.n0, 
+                  ncores=ncores, hyper.update.dn=hyper.update.dn, Tol=Tol)
    if(ncores==1)
      vb <- lapply(seq_len(nrun), FUN=vb_iterate, bundle)
    else{   # parallel
@@ -273,7 +322,8 @@ vb_iterate <- function(irun, bundle){
      }
 
      hyper <- hyper0
-     wh <- vb_init(nrow, ncol, bundle$mat, rank, hyper=hyper)
+     wh <- vb_init(nrow, ncol, bundle$mat, rank, hyper=hyper, 
+                   initializer=bundle$initializer)
      lk0 <- 0
      for(it in seq_len(bundle$Itmax)){
         wh <- vbnmf_updateR(bundle$mat, wh, rank, estimator=bundle$estimator, 

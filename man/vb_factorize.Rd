@@ -5,10 +5,10 @@
 \title{Bayesian NMF inference of count matrix}
 \usage{
 vb_factorize(object, ranks = 2, nrun = 1, verbose = 2,
-  progress.bar = TRUE, estimator = "mean", Itmax = 10000,
-  hyper.update = rep(TRUE, 4), gamma.a = 1, gamma.b = 1, Tol = 1e-05,
-  hyper.update.n0 = 10, hyper.update.dn = 1, connectivity = TRUE,
-  fudge = NULL, ncores = 1)
+  progress.bar = TRUE, estimator = "mean", initializer = "random",
+  Itmax = 10000, hyper.update = rep(TRUE, 4), gamma.a = 1, gamma.b = 1,
+  Tol = 1e-05, hyper.update.n0 = 0, hyper.update.dn = 1,
+  connectivity = TRUE, fudge = NULL, ncores = 1)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object containing count matrix.}
@@ -31,6 +31,9 @@ multiple runs.}
 \code{H} in E-step of EM algorithm are stored in \code{object}. 
 If \code{estimator = 'max'}, maximum a posteriori (MAP) 
 solutions are used instead.}
+
+\item{initializer}{If \code{'random'}, randomized initial conditions; 
+\code{'svd'} for singular value decomposed initial condition.}
 
 \item{Itmax}{Maximum no. of iteration.}
 
