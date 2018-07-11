@@ -3,6 +3,10 @@ ccfindR 1.1.1
 
 Changes:
 
+* Added C++ code update step in vb_factorize(..., useC=TRUE)
+* Added Singular value decomposition initializer for
+   vb_factorize(..., initializer='svd2')
+  random initial condition: initializer='random'
 * Changed default: filter_genes(...,rescue.genes=FALSE)
 * Changed filter_genes(), vmr.min action from vmr >= vmr.min to vmr > vmr.min 
   (removes genes with vmr=0) 

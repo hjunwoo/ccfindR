@@ -87,10 +87,8 @@ vbnmf_updateR <- function(x, wh, r, estimator, hyper, fudge=NULL){
    lh[lh < fudge] <- fudge
     
    wth <- lw %*% lh
-   U1 <- -ew %*% eh - lgamma(x+1) - x*((((lw*log(lw))%*%lh)
-         +lw%*%(lh*log(lh)))/wth - log(wth))
-#   U1 <- -ew %*% eh - lgamma(x+1) - x*((((lw*log(lw))%*%lh) + 
-#          lw%*%(lh*log(lh)))/wth - log(wth))
+   U1 <- -ew %*% eh - lgamma(x+1) - x*((((lw*log(lw))%*%lh) + 
+          lw%*%(lh*log(lh)))/wth - log(wth))
    U2 <- -(aw/bw)*ew - lgamma(aw) + aw*log(aw/bw) + 
     alw*(1+log(bew))+lgamma(alw)
    U3 <- -(ah/bh)*eh - lgamma(ah) + ah*log(ah/bh) + 
@@ -125,7 +123,6 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
      w <- matrix(0, nrow=nrow, ncol=rank)
      h <- matrix(0, nrow=rank, ncol=ncol)
      s <- svd(mat, nu=rank, nv=rank)
-#    s <- irlba::irlba(mat, rank)
      d1 <- sqrt(s$d[1])
      w[,1] <- d1*s$u[,1]
      sgn <- sign(w[1,1])
@@ -157,8 +154,10 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
        h[k,] <- sqrt(s$d[k]*sig)*t(v)
      }
    } else if(initializer=='svd2'){
-#    s <- svd(mat, nu=rank, nv=rank)
-     s <- irlba::irlba(mat, rank)
+     if(min(nrow,ncol)/2 < rank)
+       s <- svd(mat, nu=rank, nv=rank)
+     else
+       s <- irlba::irlba(mat, rank)
      w <- abs(s$u)
      h <- abs(diag(s$d[seq_len(rank)]) %*% t(s$v))
    }else stop('Unknown initializer')
@@ -214,6 +213,7 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
 #'        it will be replaced by \code{.Machine$double.eps}. 
 #'        Can be set to 0 to skip 
 #'        regularization.
+#' @param useC  Use C++ version of updates for speed.
 #' @param ncores Number of processors (cores) to run. If \code{ncores > 1},
 #'        parallelization is attempted.
 #' @return Object of class \code{scNMFSet} with factorization slots filled.
@@ -237,7 +237,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                          gamma.a=1, gamma.b=1, Tol=1e-5, 
                          hyper.update.n0=0, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
-                         ncores=1){
+                         ncores=1, useC=TRUE){
    mat <- counts(object) # S4 class scNMFSet
    nrank <- length(ranks)
    
@@ -249,9 +249,12 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    if(nullr>0) stop('Input matrix contains empty rows')
    if(nullc>0) stop('Input matrix contains empty columns')
    
+   ranks <- ranks[ranks <= ncol(mat)] # rank <= no. of columns
+   
    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
                   gamma.b=gamma.b, initializer=initializer, connectivity=connectivity, 
                   Itmax=Itmax, estimator=estimator, fudge=fudge, 
+                  useC=useC,
                   hyper.update=hyper.update, hyper.update.n0=hyper.update.n0, 
                   ncores=ncores, hyper.update.dn=hyper.update.dn, Tol=Tol)
    if(ncores==1)
@@ -326,7 +329,10 @@ vb_iterate <- function(irun, bundle){
                    initializer=bundle$initializer)
      lk0 <- 0
      for(it in seq_len(bundle$Itmax)){
-        wh <- vbnmf_updateR(bundle$mat, wh, rank, estimator=bundle$estimator, 
+        if(bundle$useC)
+           wh <- vbnmf_update(as.matrix(bundle$mat),wh,hyper,c(.Machine$double.eps))
+        else
+           wh <- vbnmf_updateR(bundle$mat, wh, rank, estimator=bundle$estimator, 
                         hyper, fudge=bundle$fudge)
         if(it > bundle$hyper.update.n0 & it%%bundle$hyper.update.dn==0) 
           hyper <- hyper_update(bundle$hyper.update, wh, hyper, Niter=100, 
@@ -379,15 +385,6 @@ bootstrap <- function(object){
    m <- nrow(mat)
    n <- ncol(mat)
    
-#   for(k in seq_len(n)){
-#     x <- mat[,k]
-#     prob <- x/sum(x)
-#     y <- sample(seq_len(m), size=sum(x), replace=TRUE, prob=prob)
-#     z <- table(factor(y,levels=seq_len(m)))
-#     z <- as.vector(z)
-#     print(k)
-#     mat[,k] <- z
-#   }
    mat <- apply(mat, 2, function(x){
      prob <- x/sum(x)
      y <- sample(seq_len(m),size=sum(x),replace=TRUE, prob=prob)

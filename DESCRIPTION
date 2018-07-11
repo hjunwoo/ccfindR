@@ -20,7 +20,10 @@ Imports: stats,
          RColorBrewer, 
          ape,
          Rmpi,
-         irlba
+         irlba,
+         Rcpp,
+         RcppEigen
+LinkingTo: Rcpp, RcppEigen
 biocViews: Transcriptomics, 
            SingleCell, 
            Bayesian, 

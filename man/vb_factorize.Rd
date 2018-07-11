@@ -8,7 +8,7 @@ vb_factorize(object, ranks = 2, nrun = 1, verbose = 2,
   progress.bar = TRUE, estimator = "mean", initializer = "random",
   Itmax = 10000, hyper.update = rep(TRUE, 4), gamma.a = 1, gamma.b = 1,
   Tol = 1e-05, hyper.update.n0 = 0, hyper.update.dn = 1,
-  connectivity = TRUE, fudge = NULL, ncores = 1)
+  connectivity = TRUE, fudge = NULL, ncores = 1, useC = FALSE)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object containing count matrix.}
