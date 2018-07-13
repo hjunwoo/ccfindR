@@ -235,11 +235,10 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                          initializer='random',
                          Itmax=10000, hyper.update=rep(TRUE,4), 
                          gamma.a=1, gamma.b=1, Tol=1e-5, 
-                         hyper.update.n0=0, hyper.update.dn=1, 
+                         hyper.update.n0=10, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
                          ncores=1, useC=TRUE){
    mat <- counts(object) # S4 class scNMFSet
-   nrank <- length(ranks)
    
    if(initializer=='svd' & nrun > 1)
      stop('SVD initializer does not require nrun > 1')
@@ -250,6 +249,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    if(nullc>0) stop('Input matrix contains empty columns')
    
    ranks <- ranks[ranks <= ncol(mat)] # rank <= no. of columns
+   nrank <- length(ranks)
    
    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
                   gamma.b=gamma.b, initializer=initializer, connectivity=connectivity, 
@@ -393,5 +393,6 @@ bootstrap <- function(object){
    })
    
    counts(object) <- mat
+   object <- remove_zeros(object)
    return(object)
 }
