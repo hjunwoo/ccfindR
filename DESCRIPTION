@@ -22,7 +22,11 @@ Imports: stats,
          Rmpi,
          irlba,
          Rcpp,
-         RcppEigen
+         RcppEigen,
+         Rsamtools,
+         VariantAnnotation,
+         Biostrings,
+         maftools
 LinkingTo: Rcpp, RcppEigen
 biocViews: Transcriptomics, 
            SingleCell, 

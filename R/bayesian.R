@@ -232,15 +232,19 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
 #' @export
 vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, 
                          progress.bar=TRUE, estimator='mean', 
-                         initializer='random',
+                         initializer='svd2',
                          Itmax=10000, hyper.update=rep(TRUE,4), 
                          gamma.a=1, gamma.b=1, Tol=1e-5, 
                          hyper.update.n0=10, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
-                         ncores=1, useC=TRUE){
+                         ncores=1, useC=TRUE,
+                         normalize.signature=FALSE,
+                         unif.stop=TRUE){
+  
+   if(is.null(fudge)) fudge <- .Machine$double.eps
    mat <- counts(object) # S4 class scNMFSet
    
-   if(initializer=='svd' & nrun > 1)
+   if(initializer %in% c('svd','svd2') & nrun > 1)
      stop('SVD initializer does not require nrun > 1')
   
    nullr <- sum(Matrix::rowSums(mat)==0)
@@ -252,11 +256,14 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    nrank <- length(ranks)
    
    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
-                  gamma.b=gamma.b, initializer=initializer, connectivity=connectivity, 
+                  gamma.b=gamma.b, initializer=initializer, 
+                  connectivity=connectivity, 
                   Itmax=Itmax, estimator=estimator, fudge=fudge, 
                   useC=useC,
-                  hyper.update=hyper.update, hyper.update.n0=hyper.update.n0, 
-                  ncores=ncores, hyper.update.dn=hyper.update.dn, Tol=Tol)
+                  hyper.update=hyper.update, 
+                  hyper.update.n0=hyper.update.n0, 
+                  ncores=ncores, hyper.update.dn=hyper.update.dn, Tol=Tol,
+                  unif.stop=unif.stop)
    if(ncores==1)
      vb <- lapply(seq_len(nrun), FUN=vb_iterate, bundle)
    else{   # parallel
@@ -269,7 +276,8 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    }
    
    basis <- coeff <- vector('list',nrank)
-   rdat <- awdat <- bwdat <- ahdat <- bhdat <- rep(0, nrank)
+   rdat <- awdat <- bwdat <- ahdat <- bhdat <- c()
+   ranks2 <- c()
    for(k in seq_len(nrank)){   # find maximum solutions for each rank
      rmax <- -Inf
      for(i in seq_len(nrun)){
@@ -278,19 +286,28 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
          rmax <- vb[[i]]$rdat[k]
        }
      }
-     rdat[k] <- rmax
+     if(rmax==-Inf) next
+     ranks2 <- c(ranks2,ranks[k])
+     rdat <- c(rdat,rmax)
      basis[[k]] <- vb[[imax]]$wdat[[k]]
      coeff[[k]] <- vb[[imax]]$hdat[[k]]
-     awdat[k] <- vb[[imax]]$hyperp[[k]]$aw
-     bwdat[k] <- vb[[imax]]$hyperp[[k]]$bw
-     ahdat[k] <- vb[[imax]]$hyperp[[k]]$ah
-     bhdat[k] <- vb[[imax]]$hyperp[[k]]$bh
+     awdat <- c(awdat,vb[[imax]]$hyperp[[k]]$aw)
+     bwdat <- c(bwdat,vb[[imax]]$hyperp[[k]]$bw)
+     ahdat <- c(ahdat, vb[[imax]]$hyperp[[k]]$ah)
+     bhdat <- c(bhdat, vb[[imax]]$hyperp[[k]]$bh)
+     
+     if(normalize.signature){
+       b <- colSums(basis[[k]])
+       basis[[k]] <- t(t(basis[[k]])/b)
+       rownames(basis[[k]]) <- rownames(mat)
+       coeff[[k]] <- b*coeff[[k]]
+     }
    }
    
-   object@ranks <- ranks
+   object@ranks <- ranks2
    object@basis <- basis
    object@coeff <- coeff
-   measure(object) <- data.frame(rank=ranks, evidence=rdat, aw=awdat,
+   object@measure <- data.frame(rank=ranks2, evidence=rdat, aw=awdat,
                       bw=bwdat, ah=ahdat, bh=bhdat)
    return(object)  
 }
@@ -305,7 +322,7 @@ vb_iterate <- function(irun, bundle){
    
    nrank <- length(bundle$ranks)
    wdat <- hdat <- hyperp <- vector('list',nrank)
-   rdat <- rep(0, nrank)
+   rdat <- rep(-Inf, nrank)
    
    if(bundle$verbose >= 2) cat('Run ',irun,'\n',sep='')
    for(irank in seq_len(nrank)){
@@ -330,15 +347,16 @@ vb_iterate <- function(irun, bundle){
      lk0 <- 0
      for(it in seq_len(bundle$Itmax)){
         if(bundle$useC)
-           wh <- vbnmf_update(as.matrix(bundle$mat),wh,hyper,c(.Machine$double.eps))
+          wh <- vbnmf_update(as.matrix(bundle$mat),wh,hyper,c(bundle$fudge))
         else
-           wh <- vbnmf_updateR(bundle$mat, wh, rank, estimator=bundle$estimator, 
+          wh <- vbnmf_updateR(bundle$mat, wh, rank, estimator=bundle$estimator, 
                         hyper, fudge=bundle$fudge)
         if(it > bundle$hyper.update.n0 & it%%bundle$hyper.update.dn==0) 
           hyper <- hyper_update(bundle$hyper.update, wh, hyper, Niter=100, 
                             Tol=1e-3)
         if(is.na(wh$lkh)) break
-        if(it>1) if(wh$lkh>=lk0) if(abs(1-wh$lkh/lk0) < bundle$Tol) break
+        if(it>1) if(it > bundle$hyper.update.n0)
+          if(wh$lkh>=lk0) if(abs(1-wh$lkh/lk0) < bundle$Tol) break
         lk0 <- wh$lkh
         if(bundle$verbose >= 3) cat(it,', log(evidence) = ',lk0,', aw = ',hyper$aw,
                  ', bw = ',hyper$bw,', ah = ',hyper$ah,
@@ -366,6 +384,15 @@ vb_iterate <- function(irun, bundle){
      } else{
        wdat[[irank]] <- wh$w
        hdat[[irank]] <- wh$h
+     }
+     contains.unif <- apply(wdat[[irank]],2,function(x){abs(max(x)-min(x))<bundle$Tol})
+     if(sum(contains.unif) > 0) {
+       warning('Rank ',rank,' row/column ',
+              paste(which(contains.unif),collapse=','),' constant.')
+       if(bundle$unif.stop){
+         warning('Rank scan stopped for rank >= ',rank)
+         break
+       }
      }
      rdat[irank] <- lk0
      hyperp[[irank]] <- hyper
