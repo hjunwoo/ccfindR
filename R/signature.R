@@ -37,26 +37,25 @@ kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
  
   chrs <- unique(maf.snp$Chromosome)
   
-  if(class(ref.genome)=='character'){       # ref.genome path supplied
-    ref <- Rsamtools::FaFile(file=ref.genome)
-    message(paste0('Reading ', ref.genome,'...')) # read ref.genome
-    ref <- VariantAnnotation::getSeq(x = ref)
-  } else
-    ref <- ref.genome
+  if(class(ref.genome)!='DNAStringSet'){
+    message('Reading ref. genome ...')            # read ref.genome
+    if(class(ref.genome)=='character'){           # ref.genome path supplied
+      ref <- Rsamtools::FaFile(file=ref.genome)
+      ref <- Biostrings::getSeq(x = ref)
+    }
+    else if(class(ref.genome)=='BSgenome')
+      ref <- Biostrings::getSeq(x = ref.genome)
+    else
+      stop('Inappropriate class object for ref.genome')
+  }
   
   seq.lvl <- VariantAnnotation::seqlevels(ref)  # extract contigs from ref
   seq.lvl <- sapply(X=strsplit(x=seq.lvl, split=' ',fixed=TRUE),
                     '[[',1)
-  names(ref) <- seq.lvl
+# names(ref) <- seq.lvl
   chrs.missing <- chrs[!chrs %in% seq.lvl]
   
   if(length(chrs.missing) > 0){
-#    warning(paste0('Chr. in fasta: ', paste(seq.lvl, collapse=', ')))
-#    warning(paste0('Chr. in input maf: ', paste(chrs, collapse=', ')))
-#    warning(paste0('Chr. names in MAF must match those in ref. Ignoring ',
-#                   nrow(maf.snp[Chromosome %in% chrs.missing]),
-#                   'snvs from missing chr.',
-#                   paste(chrs.missing, collapse=', ')))
     warning(paste0('Chromosome ',chrs.missing,' not in ref and ignored'))
     maf.snp <- maf.snp[!Chromosome %in% chrs.missing]
     if(nrow(maf.snp)==0) stop('No mutations left.')
@@ -75,21 +74,21 @@ kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
   ss <- Biostrings::subseq(x=ref[extract.tbl[,Chromosome]],
                            start=extract.tbl[,Start],
                            end=extract.tbl[,End])
-  message('Extracting +/- 20bp around mutation...')
-  updwn <- Biostrings::subseq(x=ref[extract.tbl[,Chromosome]],
-                               start=extract.tbl[,upstream],
-                               end=extract.tbl[,downstream])
-  updwn.alphFreq <- 
-    data.table::as.data.table(
-      Biostrings::alphabetFrequency(x=updwn))[,.(A,C,G,T)]
-  updwn.tnmFreq <- data.table::as.data.table(Biostrings::trinucleotideFrequency(
-    x=updwn, step=1))
+#  message('Extracting +/- 20bp around mutation...')
+#  updwn <- Biostrings::subseq(x=ref[extract.tbl[,Chromosome]],
+#                               start=extract.tbl[,upstream],
+#                               end=extract.tbl[,downstream])
+#  updwn.alphFreq <- 
+#    data.table::as.data.table(
+#      Biostrings::alphabetFrequency(x=updwn))[,.(A,C,G,T)]
+#  updwn.tnmFreq <- data.table::as.data.table(Biostrings::trinucleotideFrequency(
+#    x=updwn, step=1))
   
-  extract.tbl[,polynucleotide:= as.character(ss)][,updwn:=as.character(updwn)]
-  extract.tbl <- cbind(extract.tbl, updwn.alphFreq[,.(A,T,G,C)])
-  extract.tbl <- cbind(extract.tbl, updwn.tnmFreq[,.(TCA,TCT,AGA,TGA)])
-  extract.tbl[, tcw := rowSums(extract.tbl[, .(TCA,TCT)])]
-  extract.tbl[, wga := rowSums(extract.tbl[, .(TGA,AGA)])]
+   extract.tbl[,polynucleotide:= as.character(ss)]
+#  extract.tbl <- cbind(extract.tbl, updwn.alphFreq[,.(A,T,G,C)])
+#  extract.tbl <- cbind(extract.tbl, updwn.tnmFreq[,.(TCA,TCTn,AGA,TGA)])
+#  extract.tbl[, tcw := rowSums(extract.tbl[, .(TCA,TCT)])]
+#  extract.tbl[, wga := rowSums(extract.tbl[, .(TGA,AGA)])]
   
   extract.tbl[,Substitution:=paste(extract.tbl$Reference_Allele,
             extract.tbl$Tumor_Seq_Allele2, sep='>')]
@@ -128,18 +127,11 @@ kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
   swapSubTypeMotif[swap.ind] <- complemented.multiplets[swap.ind]
   
   extract.tbl$SubstitutionTypeMotif <- swapSubTypeMotif
-  sub.levels <- extract.tbl[,.N, Substitution][,Substitution]
-
-#  nt <- c('A','C','G','T')
-#  stype <- c('[C>A]','[C>G]','[C>T]','[T>A]','[T>C]','[T>G]')
-#  z <- vector('list',2*dk+1)
-#  for(k in seq_len(2*dk)) z[[k]] <- nt
-#  z[[2*dk+1]] <- stype
-#  x <- expand.grid(z)
-#  x <- x[,c(seq(dk+1,2*dk),2*dk+1,seq(1,dk))]
-#  subtype.levels <- apply(x,1,paste, collapse='')
-  
+    sub.levels <- extract.tbl[,.N, Substitution][,Substitution]
   subtype.levels <- mut_list(kmer.size)
+  extract.tbl$SubstitutionTypeMotif = 
+    factor(x = extract.tbl$SubstitutionTypeMotif, levels = subtype.levels)  
+  
   message('Creating mutation matrix..')
   extract.tbl.summary <- extract.tbl[,.N, by=list(Tumor_Sample_Barcode,
                                                    SubstitutionTypeMotif)]

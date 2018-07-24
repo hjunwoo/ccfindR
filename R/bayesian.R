@@ -300,6 +300,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
        b <- colSums(basis[[k]])
        basis[[k]] <- t(t(basis[[k]])/b)
        rownames(basis[[k]]) <- rownames(mat)
+       colnames(coeff[[k]]) <- colnames(mat)
        coeff[[k]] <- b*coeff[[k]]
      }
    }

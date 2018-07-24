@@ -147,14 +147,16 @@ penta2trimer <- function(X){
 
 #' Plot mutation load
 #' @export
-plot_mutload <- function(obj,rank,col=NULL){
+plot_mutload <- function(obj,rank, sample.id=NULL, col=NULL,labRow=''){
   
   if(is.null(col))
     col <- RColorBrewer::brewer.pal(n=9,'YlOrRd')
   
   id <- which(ranks(obj)==rank)
   H <- coeff(obj)[[id]]    # signatures
-  stats::heatmap(log(H),revC=TRUE,scale='none',col=col,Rowv=NA,Colv=NULL,
-                 labCol='')
+  if(!is.null(sample.id)) 
+    H <- H[,sample.id]
+  stats::heatmap(log(t(H)),revC=TRUE,scale='none',col=col,Rowv=NULL,Colv=NA,
+                 labRow=labRow)
   invisible()
 }

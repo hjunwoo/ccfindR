@@ -1,0 +1,166 @@
+---
+title: "ccfindR-sig: Mutation signature discovery using Bayesian NMF"
+author: ""
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+        fig_caption: yes
+bibliography: scRNA.bib
+csl: nature.csl
+vignette: >
+  %\VignetteIndexEntry{ccfindR: signatures}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette illustrates the use of package `ccfindR` in mutation signature
+discovery and analyses. Mutation signatures are characteristic patterns of
+short nucleotide sequences (3~5 bp) flanking single nucleotide somatic mutations
+in tumor samples [@alexandrov_etal-1]. Signatures are expected to reflect molecular processes responsible for tumorigenesis (e.g., UV exposure or APOBEC enzyme action) and 
+can provide insights into hidden features shared by seemingly disparate tumor samples.
+
+An established computational technique used for deriving mutation signatures is
+the non-negative matrix factorization (NMF) 
+method [@lee_seung,@alexandrov_etal-2]. The conventional NMF approach,
+used by other implementations of signature analysis 
+[@gehring_etal,@ardin_etal],
+requires the total number of signatures present, which we refer to as "rank", 
+as an input parameter. This key parameter is often inferred indirectly via
+assessment of factorization quality measures.
+The variational Bayes formulation of NMF implemented 
+in `ccfindR` 
+allows for a de novo determination of this key parameter, as illustrated below:
+
+
+## Mutation count matrix
+
+The main input data to mutation signature analysis consist of a mutation count
+matrix, whose rows represent distinct nucleotide sequence contexts surrounding
+the mutation site and columns contain genome samples under consideration. 
+Each element of the matrix is the number of instances of sequence contexts
+counted over the given sample.
+
+The main function generating this matrix, `kmer_matrix()`, was adapted from the
+function `trinucleotideMatrix()` in the package [`maftools`](https://bioconductor.org/packages/release/bioc/vignettes/maftools/inst/doc/maftools.html). We added the capability of considering 5-mers (1,536 rows) 
+in addition to the standard 3-mer (96 rows) option.
+The main input is the mutation data in the form of `maf` object (see `maftools`)
+containing information held in MAF (mutation annotation format) files. 
+Here, we use the data package `TCGAmutations`, which provides `maf` objects containing 
+whole exme sequencing data sets of 32 TCGA cohorts:
+
+```{r}
+library(TCGAmutations)
+tcga_load(study='BRCA')
+brca <- get('tcga_brca')
+brca
+```
+
+To extract 3-mer matrix from this data set, we use the HG19 reference genome provided
+by `BSgenome.Hsapiens.UCSC.hg19` package:
+```{r}
+library(ccfindR)
+library(BSgenome.Hsapiens.UCSC.hg19)
+hg19 <- BSgenome.Hsapiens.UCSC.hg19
+mat <- kmer_matrix(maf = brca, ref.genome = hg19, prefix = 'chr', renameChr = c('chr23','chrX'))
+mat[1:10,1:10]
+```
+An absolute path of hg19 FASTA file can also be supplied to the `ref.genome` parameter. 
+The output is a sparse matrix of class `dgCMatrix`. 
+This matrix is then used to construct a `scNMFSet` object by
+```{r}
+smat <- scNMFSet(count=mat)
+smat
+```
+
+## Rank determination
+
+The rank (number of signatures present in the sample) is the intermediate dimension
+shared by two factor matrices whose product closely approximates the count matrix.
+We use the main function for factorization `vb_factorize()`, also used in the
+single-cell clustering protocol of `ccfindR`, with the option `normalize.signature=TRUE`, which rescales the two factor matrices such that
+the column sums of the `basis` matrices are equal to 1:
+```{r}
+smat <- vb_factorize(smat, ranks = 2:10, initializer = 'svd2', normalize.signature = TRUE)
+```
+The rank values supplied are scanned sequentially and the ouput shows the number of iterations required for convergence, the final log evidence (marginal likelihood of rank), and hyperparameter values for each rank. Increasing ranks beyond a certain
+value can lead to redundant columns (uniform signature), which occurs at rank 8 in 
+the above example. The scan stops by default with a warning at this rank.
+
+The optimum rank is determined by
+condition of maximum evidence. This dependence is plotted by
+```{r, fig.show='hold', fig.cap="Fig.1: Rank vs. evidence profile the factorization of BRCA mutation matrix in 3-mer representation."}
+plot(smat)
+```
+
+The plot above indicates that rank values between 4 and 7 are optimal. 
+As in single-cell RNA-seq analysis, the factorization outcomes can be accessed
+by
+```{r}
+ranks(smat)
+measure(smat)
+id <- which(ranks(smat)==4)
+head(basis(smat)[[id]])
+coeff(smat)[[id]][,1:5]
+```
+
+## Visualization
+
+The signatures derived can be visualized as follows:
+```{r, fig.show='hold', fig.cap="Fig.2: Signatures in BRCA samples under 3-mer representation. Closest COSMIC signatures are indicated with cosine overlaps in parentheses.", fig.width=5,fig.height=6}
+plot_signatures(smat, rank = 4, pmax = 0.4)
+```
+
+Each signature (denoted as "Process") is compared with validated signatures 
+from [COSMIC](https://cancer.sanger.ac.uk/cosmic/signatures) [@forbes_etal]. 
+An alternative list 
+can be suppied with the option `cosmic="path_to_signature_table"` 
+(see the format 
+of the file downloadable from the COSMIC website). The signature with the 
+highest cosine overlap above a threshold (changeable by `similarity.cutoff = 0.5`)
+is printed. The overall heatmap of cosine overlap can be displayed by
+```{r,fig.show='hold', fig.cap="Fig.3: Heatmap of cosine overlap between sample (columns) and COSMIC (rows) signatures.", fig.width=5, fig.height=5}
+signature_map(smat, rank = 4)
+```
+
+Note that while Processes 2-4 have strong overlaps with known signatures, Process 1 does not.
+
+The other factor matrix, accessed by `coeff()`, contains information regarding
+mutation loads of each signature within individual samples. We visualize them by
+```{r, fig.show='hold', fig.cap="Fig.4: Mutation loads of four signatures in the first 20 BRCA samples.", fig.width=5, fig.height=4}
+sample.id <- colnames(smat)[1:20]
+plot_mutload(smat, rank = 4, sample.id = sample.id, labRow = sample.id)
+```
+
+## 5-mer representation
+
+The above procedure can be applied analogously in 5-mer representation:
+```{r,cache=TRUE}
+mat5 <- kmer_matrix(maf = brca, ref.genome = '/home/jwoo/local/refs/hg19.fa', prefix = 'chr', renameChr = c('chr23','chrX'), kmer.size = 5)
+mat5[1:10,1:20]
+
+dmat <- scNMFSet(count = mat5)
+dmat <- vb_factorize(dmat, ranks = 2:10, initializer = 'svd2', normalize.signature = TRUE)
+```
+
+The rank profile has a more pronounced maximum at rank 4 compared to 3-mer results
+in Fig.1:
+```{r, fig.show='hold', fig.cap="Fig.5: Rank vs. evidence profile from factorization of 5-mer matrices for BRCA samples."}
+plot(dmat)
+```
+
+```{r, fig.show='hold', fig.cap="Fig.6: Signatures in BRCA samples under 5-mer representation. Overlaps with COSMIC signatures are computed by first reducing 5-mer signatures into 3-mers.", fig.width=5,fig.height=6}
+plot_signatures(dmat, rank = 4, kmer.size = 5, pmax = 0.06)
+```
+
+Note that although the overall features of obtained signatures are consistent with those from 3-mer representation (Fig.2), they contain much more detailed pictures of
+individual signatures. In particular, Process 1 is resolved into multiple sub-peaks
+in Fig.6 while it is dominated by a single mutation context in Fig.2.
+
+##References

@@ -565,7 +565,7 @@ remove_zeros <- function(object){
   if(ng0+nc0>0){
     object <- object[!gene0,!cell0]
     if(ng0>0)
-      cat(ng0,'empty genes removed\n')
+      cat(ng0,'empty rows removed\n')
     if(nc0>0)
       cat(nc0,'empty cells removed\n')
   }
