@@ -29,8 +29,7 @@ can provide insights into hidden features shared by seemingly disparate tumor sa
 An established computational technique used for deriving mutation signatures is
 the non-negative matrix factorization (NMF) 
 method [@lee_seung,@alexandrov_etal-2]. The conventional NMF approach,
-used by other implementations of signature analysis 
-[@gehring_etal,@ardin_etal],
+used by other implementations of signature analysis [@gehring_etal,@ardin_etal],
 requires the total number of signatures present, which we refer to as "rank", 
 as an input parameter. This key parameter is often inferred indirectly via
 assessment of factorization quality measures.
@@ -48,7 +47,8 @@ Each element of the matrix is the number of instances of sequence contexts
 counted over the given sample.
 
 The main function generating this matrix, `kmer_matrix()`, was adapted from the
-function `trinucleotideMatrix()` in the package [`maftools`](https://bioconductor.org/packages/release/bioc/vignettes/maftools/inst/doc/maftools.html). We added the capability of considering 5-mers (1,536 rows) 
+function `trinucleotideMatrix()` in the package [`maftools`](https://bioconductor.org/packages/release/bioc/vignettes/maftools/inst/doc/maftools.html). 
+We added the capability of considering 5-mers (1,536 rows) 
 in addition to the standard 3-mer (96 rows) option.
 The main input is the mutation data in the form of `maf` object (see `maftools`)
 containing information held in MAF (mutation annotation format) files. 

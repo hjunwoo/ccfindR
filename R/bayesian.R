@@ -276,7 +276,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    }
    
    basis <- coeff <- vector('list',nrank)
-   rdat <- awdat <- bwdat <- ahdat <- bhdat <- c()
+   rdat <- awdat <- bwdat <- ahdat <- bhdat <- nunif <- c()
    ranks2 <- c()
    for(k in seq_len(nrank)){   # find maximum solutions for each rank
      rmax <- -Inf
@@ -295,6 +295,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
      bwdat <- c(bwdat,vb[[imax]]$hyperp[[k]]$bw)
      ahdat <- c(ahdat, vb[[imax]]$hyperp[[k]]$ah)
      bhdat <- c(bhdat, vb[[imax]]$hyperp[[k]]$bh)
+     nunif <- c(nunif, vb[[imax]]$nunif[k])
      
      if(normalize.signature){
        b <- colSums(basis[[k]])
@@ -309,7 +310,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    object@basis <- basis
    object@coeff <- coeff
    object@measure <- data.frame(rank=ranks2, evidence=rdat, aw=awdat,
-                      bw=bwdat, ah=ahdat, bh=bhdat)
+                      bw=bwdat, ah=ahdat, bh=bhdat, nunif=nunif)
    return(object)  
 }
 
@@ -324,6 +325,7 @@ vb_iterate <- function(irun, bundle){
    nrank <- length(bundle$ranks)
    wdat <- hdat <- hyperp <- vector('list',nrank)
    rdat <- rep(-Inf, nrank)
+   nunif <- rep(0, nrank)
    
    if(bundle$verbose >= 2) cat('Run ',irun,'\n',sep='')
    for(irank in seq_len(nrank)){
@@ -388,10 +390,12 @@ vb_iterate <- function(irun, bundle){
      }
      contains.unif <- apply(wdat[[irank]],2,function(x){abs(max(x)-min(x))<bundle$Tol})
      if(sum(contains.unif) > 0) {
+       nunif[irank] <- sum(contains.unif)
        warning('Rank ',rank,' row/column ',
               paste(which(contains.unif),collapse=','),' constant.')
        if(bundle$unif.stop){
          warning('Rank scan stopped for rank >= ',rank)
+         if(irank==1) stop('Rerun with lower ranks')
          break
        }
      }
@@ -399,7 +403,7 @@ vb_iterate <- function(irun, bundle){
      hyperp[[irank]] <- hyper
    }
    
-   vb <- list(rdat=rdat, wdat=wdat, hdat=hdat, hyperp=hyperp)
+   vb <- list(rdat=rdat, wdat=wdat, hdat=hdat, hyperp=hyperp, nunif=nunif)
    return(vb)
 }
 
