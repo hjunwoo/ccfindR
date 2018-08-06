@@ -154,7 +154,7 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
        h[k,] <- sqrt(s$d[k]*sig)*t(v)
      }
    } else if(initializer=='svd2'){
-     if(min(nrow,ncol)/2 < rank)
+     if(min(nrow,ncol)/2 <= rank)
        s <- svd(mat, nu=rank, nv=rank)
      else
        s <- irlba::irlba(mat, rank)
@@ -239,6 +239,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                          connectivity=TRUE, fudge=NULL,
                          ncores=1, useC=TRUE,
                          normalize.signature=FALSE,
+                         kmer.size=3,
                          unif.stop=TRUE){
   
    if(is.null(fudge)) fudge <- .Machine$double.eps
@@ -291,19 +292,22 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
      rdat <- c(rdat,rmax)
      basis[[k]] <- vb[[imax]]$wdat[[k]]
      coeff[[k]] <- vb[[imax]]$hdat[[k]]
-     awdat <- c(awdat,vb[[imax]]$hyperp[[k]]$aw)
-     bwdat <- c(bwdat,vb[[imax]]$hyperp[[k]]$bw)
+     awdat <- c(awdat, vb[[imax]]$hyperp[[k]]$aw)
+     bwdat <- c(bwdat, vb[[imax]]$hyperp[[k]]$bw)
      ahdat <- c(ahdat, vb[[imax]]$hyperp[[k]]$ah)
      bhdat <- c(bhdat, vb[[imax]]$hyperp[[k]]$bh)
      nunif <- c(nunif, vb[[imax]]$nunif[k])
      
+     rownames(basis[[k]]) <- rownames(mat)
      if(normalize.signature){
-       b <- colSums(basis[[k]])
+       mut <- mut_list(kmer.size)
+       if(sum(mut%in%rownames(mat))==0)
+         stop('Signature normalization failed')
+       b <- colSums(basis[[k]][mut,])
        basis[[k]] <- t(t(basis[[k]])/b)
-       rownames(basis[[k]]) <- rownames(mat)
-       colnames(coeff[[k]]) <- colnames(mat)
        coeff[[k]] <- b*coeff[[k]]
      }
+     colnames(coeff[[k]]) <- colnames(mat)
    }
    
    object@ranks <- ranks2

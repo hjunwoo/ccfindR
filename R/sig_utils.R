@@ -75,7 +75,7 @@ mut_list <- function(kmer.size=3){
 #' Compute cosine similarity scores
 cos_sim <- function(X,Y){
   
-  if(nrow(X)==1527 & nrow(Y)==96)  # reduce 5-mer into 3-mer
+  if(nrow(X)!=nrow(Y))  # reduce 5-mer into 3-mer
     X <- penta2trimer(X)
   
   if(nrow(X)!=nrow(Y))
