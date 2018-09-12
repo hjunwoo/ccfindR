@@ -12,7 +12,7 @@
 #'        \code{renameChr=c('chr23','chrX')}.
 kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
                         kmer.size=3, ignoreChr=NULL, 
-                        useSyn=TRUE, renameChr=NULL){
+                        useSyn=TRUE, renameChr=NULL, gene.list=FALSE){
   
   maf.snp <- maftools::subsetMaf(maf=maf, includeSyn=useSyn, 
                        fields='Variant_Classification',
@@ -32,8 +32,12 @@ kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
       maf.snp$Chromosome <- gsub(pattern=prefix, replacement='',
                                  x=maf.snp$Chromosome, fixed=TRUE)
   }
-  if(!is.null(renameChr))
-    maf.snp$Chromosome[maf.snp$Chromosome==renameChr[1]] <- renameChr[2]
+  if(!is.null(renameChr)){
+    n <- length(renameChr[[1]])
+    for(i in seq_len(n))
+      maf.snp$Chromosome[maf.snp$Chromosome==renameChr[[1]][i]] <- 
+        renameChr[[2]][i]
+  }
  
   chrs <- unique(maf.snp$Chromosome)
   
@@ -65,6 +69,7 @@ kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
   extract.tbl <- data.table::data.table(Chromosome=maf.snp$Chromosome,
                     Start=maf.snp$Start_Position-dk,
                     End=maf.snp$Start_Position+dk,
+                    Genes.affected=maf.snp$Hugo_Symbol,
                     Reference_Allele=maf.snp$Reference_Allele,
                     Tumor_Seq_Allele2=maf.snp$Tumor_Seq_Allele2,
                     Tumor_Sample_Barcode=maf.snp$Tumor_Sample_Barcode,
@@ -134,12 +139,13 @@ kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
   
   message('Creating mutation matrix..')
   extract.tbl.summary <- extract.tbl[,.N, by=list(Tumor_Sample_Barcode,
-                                                   SubstitutionTypeMotif)]
+#                                                   SubstitutionTypeMotif)]
+                                                  SubstitutionTypeMotif, Genes.affected)]
   
   conv.mat <- as.data.frame(
     data.table::dcast(extract.tbl.summary, 
                       formula=Tumor_Sample_Barcode~SubstitutionTypeMotif,fill=0,
-                      value.var='N', drop=FALSE))
+                      value.var='N', fun.aggregate='sum',drop=FALSE))
   rownames(conv.mat) <- conv.mat[,1]
   conv.mat <- conv.mat[,-1]
   
@@ -157,5 +163,29 @@ kmer_matrix <- function(maf, ref.genome, prefix=NULL, add=TRUE,
   
   message(paste('matrix of dimension ', nrow(conv.mat), 'x', ncol(conv.mat), sep=''))
   
-  return(conv.mat)
+  if(!gene.list) return(conv.mat)
+  else{
+    gene.mat <- as.data.frame(
+      data.table::dcast(extract.tbl.summary,
+                      formula=Tumor_Sample_Barcode~SubstitutionTypeMotif,fill='',
+                      value.var='Genes.affected', 
+                      fun.aggregate=function(x){paste(x[x!='UnknownGene'],collapse=' ')})
+    )
+    rownames(gene.mat) <- gene.mat[,1]
+    gene.mat <- gene.mat[,-1]
+    colOrder.missing <- subtype.levels[!subtype.levels %in% 
+                                         colnames(gene.mat)]
+    
+    if(length(colOrder.missing) > 0){
+      zeroMat <- as.data.frame(matrix(data = 0, nrow=nrow(gene.mat),
+                                      ncol = length(colOrder.missing)))
+      colnames(zeroMat) <- colOrder.missing
+      gene.mat <- cbind(gene.mat, zeroMat)
+    }
+    gene.mat <- gene.mat[,match(subtype.levels, colnames(gene.mat))]
+    gene.mat[is.na(gene.mat)] <- ''
+    gene.mat <- t(gene.mat)
+  
+    return(list(count=conv.mat, genes=gene.mat))
+  }
 }

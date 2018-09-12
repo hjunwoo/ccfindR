@@ -393,7 +393,7 @@ rowVars <- function(x, means){
 #' @export
 gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
                      log=TRUE, max.per.cluster = 10, Colv=NA,
-                     gene.names=NULL,
+                     gene.names=NULL, scheme='max',
                      main='Genes', col=NULL, ...){
   
   if(missing(rank)) rank <- ranks(object)[1] # by default the first rank
@@ -406,7 +406,8 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
   colnames(w) <- seq_len(rank)
   if(!is.null(gene.names)) rownames(w) <- gene.names
   if(dim(w)[1] <= max.per.cluster) select <- rownames(w)
-  else select <- gene_select(w, markers, max.per.cluster= max.per.cluster)
+  else select <- gene_select(w, markers, max.per.cluster= max.per.cluster,
+                             scheme=scheme,ntop=ntop)
   w <- w[select,]
   if(is.null(col)) ccol <- grDevices::rainbow(n = dim(w)[2])
   else ccol <- col
@@ -429,22 +430,41 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' plot(s)
 #' feature_map(s, rank=3)
 #' @export
-feature_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
-                        log=TRUE, max.per.cluster = 10, Colv=NA,
+feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL, 
+                        subtract.mean=TRUE, log=TRUE, scheme='max',
+                        sweep=TRUE,
+                        ntop=1, max.per.cluster = 10, Colv=NA,
                         feature.names=NULL, perm=NULL,
                         main='Feature map', cscale=NULL, 
                         cex.cluster=1, cex.feature=0.5, mar=NULL, ...){
   
   if(is.null(cscale)) cscale <- RColorBrewer::brewer.pal(n=9,'YlOrRd')
-  if(missing(rank)) rank <- ranks(object)[1] # by default the first rank
+  if(missing(rank)){
+     if(!is.null(basis.matrix)) rank <- ncol(basis.matrix)
+     else rank <- ranks(object)[1] # by default the first rank
+  }
   if(is.null(perm)) perm <- seq_len(rank)
-  w <- basis(object)[ranks(object)==rank][[1]][,perm]
-  colnames(w) <- seq_len(rank)
+
+  if(is.null(basis.matrix)){
+    w <- basis(object)[ranks(object)==rank][[1]][,perm]
+    meta <- meta_genes(object, rank=rank, subtract.mean=subtract.mean,
+                       scheme=scheme, ntop=ntop,
+                       log=log, max.per.cluster=max.per.cluster)
+    colnames(w) <- seq_len(rank)
+  }
+  else{
+    w <- basis.matrix
+    meta <- meta_genes(basis.matrix=w, rank=rank, subtract.mean=subtract.mean,
+                       scheme=scheme, ntop=ntop,
+                       log=log, max.per.cluster=max.per.cluster)
+  }
+
   if(!is.null(feature.names)) rownames(w) <- feature.names
-  if(log) w <- w/exp(rowMeans(log(w)))
-  else w <- w - rowMeans(w)
-  
-  meta <- meta_genes(object, rank=rank, max.per.cluster=max.per.cluster)
+#  if(subtract.mean){
+    if(log) w <- w/exp(rowMeans(log(w)))
+    else w <- w - rowMeans(w)
+#  }
+
   meta <- meta[perm]
   if(!is.null(markers)){
     markers <- markers[markers %in% rownames(w)]
@@ -465,12 +485,15 @@ feature_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
   nc <- ncol(w1)
   nr <- nrow(w1)
   
-  x <- sweep(w1, 1, rowMeans(w1), check.margin=TRUE)
-  sx <- apply(x,1,sd)
-  x <- sweep(x, 1, sx, '/', check.margin=FALSE)
+  if(sweep){
+    x <- sweep(w1, 1, rowMeans(w1), check.margin=TRUE)
+    sx <- apply(x,1,sd)
+    x <- sweep(x, 1, sx, '/', check.margin=FALSE)
+  } else x <- w1
   
   if(is.null(mar)) mar <- c(5.1,4.1,4.1,4)
   par(mar=mar)
+  if(!sweep) x <- log(x)
   image(seq_len(nc), seq_len(nr), t(x)[,seq(nr,1)], xlim=0.5+c(0,nc),
         ylim=0.5+c(0,nr), axes=FALSE, xlab='',ylab='',col=cscale)
   axis(1,seq_len(nc), labels=seq_len(nc), las=1, line=-1.0,tick=0, 
@@ -549,11 +572,12 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' colnames(x) <- seq_len(100)
 #' s <- scNMFSet(count=x,rowData=seq_len(10),colData=seq_len(100))
 #' s <- vb_factorize(s,ranks=seq(2,5))
-#' meta_genes(s, rank=5)
+#' meta_genes(s, rank=4)
 #' @export
 meta_genes <- function(object, rank, basis.matrix=NULL, 
                        max.per.cluster=10,gene_names=NULL,
-                       subtract.mean=TRUE,log=TRUE){
+                       subtract.mean=TRUE,log=TRUE,
+                       scheme='max',ntop=1){
   
   if(is.null(basis.matrix)){
     w <- basis(object)[ranks(object) == rank][[1]]
@@ -571,7 +595,12 @@ meta_genes <- function(object, rank, basis.matrix=NULL,
   select <- vector('list',rank)
   for(k in seq_len(rank)){
     v <- w[order(w[,k],decreasing=TRUE),]
-    flag <- apply(v,1,function(x){x[k]==max(x)})
+    if(scheme=='max')
+      if(ntop==1) flag <- apply(v,1,function(x){x[k]==max(x)})
+      else flag <- apply(v,1,function(x){
+                  k %in% order(x,decreasing=TRUE)[seq_len(ntop)]})
+    else if(scheme=='sort')
+      flag <- rep(TRUE,length(v))
     tmp <- rownames(v)[which(flag)]
     if(length(tmp) > nmax) tmp <- tmp[seq_len(nmax)]
     select[[k]] <- tmp
@@ -579,7 +608,8 @@ meta_genes <- function(object, rank, basis.matrix=NULL,
   select
 }
 
-gene_select <- function(w, markers = NULL, max.per.cluster = 10){
+gene_select <- function(w, markers = NULL, max.per.cluster = 10,
+                        scheme='max', ntop=1){
   
   rank <- dim(w)[2]
   select <- c()
@@ -590,7 +620,9 @@ gene_select <- function(w, markers = NULL, max.per.cluster = 10){
       w <- w[!rownames(w) %in% markers, ]
     }
     v <- w[order(w[,k],decreasing=TRUE),]
-    flag <- apply(v,1,function(x){x[k]==max(x)})
+    if(ntop==1) flag <- apply(v,1,function(x){x[k]==max(x)})
+    else flag <- apply(v,1,function(x){
+      k %in% order(x,decreasing=TRUE)[seq_len(ntop)]})
     tmp <- rownames(v)[which(flag)]
     if(length(tmp) > nmax) tmp <- tmp[seq_len(nmax)]
     select <- c(select, tmp)

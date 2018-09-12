@@ -16,40 +16,54 @@ plot_signatures <- function(obj,rank, col=NULL, kmer.size=3, pmax=NULL,
   old.par <- graphics::par(no.readonly=TRUE)
   # read cosmic signature list
   if(is.null(cosmic))
-    cosmic <- system.file('extdata','signatures_probabilities.txt',
+#   cosmic <- system.file('extdata','cosmic_signatures_v2.txt',
+#                          package='ccfindR')
+    cosmic <- system.file('extdata','PCAWG_SBS_v3.txt',
                           package='ccfindR')
-  cosmic <- read.table(cosmic,header=TRUE,sep='\t')
-  x <- cosmic$Somatic.Mutation.Type
-  cosmic <- cosmic[,seq(4,33)]
-  rownames(cosmic) <- x
+  cosmic <- read.table(cosmic,header=TRUE,sep=' ')
+  # rownames = mutation context (3-mer), colnames=signature #
+
+  if(class(obj)=='scNMFSet'){
+    id <- which(ranks(obj)==rank)
+    P <- basis(obj)[[id]]    # signatures
+    E <- coeff(obj)[[id]]    # mutation loads
+  }
+  else if(class(obj)=='matrix'){
+    P <- obj
+    rank <- ncol(P)
+  }
   
-  graphics::par(mfrow=mfrow,lwd=0.1, mar=c(2,4,2,4))
-  id <- which(ranks(obj)==rank)
-  P <- basis(obj)[[id]]    # signatures
-  E <- coeff(obj)[[id]]    # mutation loads
-  cosim <- cos_sim(P,cosmic) # cosine similarity to cosmic signatures
+  graphics::par(mfrow=mfrow,lwd=0.1)
+  
+  cosim <- cos_sim(P,cosmic,kmer.size) 
+                  # cosine similarity to cosmic signatures
   
   kd <- (kmer.size-1)/2
-  if(is.null(pmax)) pmax <- max(P)
+# if(is.null(pmax)) pmax <- max(P)
   
   if(is.null(col)) col <- c('blue','gray60','red','orange','green','cornflowerblue')
   x <- rownames(P)
-  central <- vapply(x,function(x){substr(x,start=kd+2,stop=kd+4)},character(1))
+  central <- vapply(x,function(x){substr(x,start=kd+2,stop=kd+4)},
+                    character(1))
   fl <- levels(factor(central))
-  xlabel <- vapply(fl, function(x){mean(which(central==x))},numeric(1))  # position of mutation label
+  xlabel <- vapply(fl, function(x){mean(which(central==x))},numeric(1))  
+  # position of mutation label
   col2 <- c()
   for(i in 1:6) col2 <- c(col2, rep(col[i],table(central)[fl][i]))
   
   for(k in seq_len(rank)){
-    barplot(P[,k], names.arg='', col=col2, ylab='Probability',ylim=c(0,pmax),las=1)
-    sid <- which.max(cosim[k,])
+    if(is.null(pmax)) pmaxk <- max(P[,k])*1.2
+    else pmaxk <- pmax
+    barplot(P[,k], names.arg='', col=col2, border=NA, 
+            ylab='Probability',ylim=c(0,pmaxk),las=1)
+    sid <- colnames(cosmic)[which.max(cosim[k,])]
     cos <- max(cosim[k,])
     if(cos>similarity.cutoff)
       title(adj=0, main=paste0(
-        'Process ', k,': Signature ',sid,'-like (',round(cos,2),')'),cex.main=1.0)
+        'Process ', k,': ',sid,'-like (',signif(cos,3),')'),cex.main=1)
     else
-      title(adj=0, main=paste0('Process ',k), cex.main=1.0)
-    text(x=xlabel*1.2, label=fl, y=-pmax*0.15, xpd=NA, col=col, cex=0.8)
+      title(adj=0, main=paste0('Process ',k),cex.main=1)
+    text(x=xlabel*1.2, label=fl, y=-pmaxk*0.15, xpd=NA, col=col)
   }
   graphics::par(old.par)
   invisible()
@@ -73,13 +87,15 @@ mut_list <- function(kmer.size=3){
 }
 
 #' Compute cosine similarity scores
-cos_sim <- function(X,Y){
+cos_sim <- function(X,Y,kmer.size){
   
-  if(nrow(X)!=nrow(Y))  # reduce 5-mer into 3-mer
+# if(nrow(X)!=nrow(Y))  # reduce 5-mer into 3-mer
+  if(kmer.size==5)
     X <- penta2trimer(X)
   
   if(nrow(X)!=nrow(Y))
-    stop('X and Y do not have the same number of rows')
+#   stop('X and Y do not have the same number of rows')
+    Y <- Y[rownames(Y)%in% rownames(X),]
   
   Y <- Y[match(rownames(X),rownames(Y)),]
   m <- nrow(X)
@@ -159,4 +175,25 @@ plot_mutload <- function(obj,rank, sample.id=NULL, col=NULL,labRow=''){
   stats::heatmap(log(t(H)),revC=TRUE,scale='none',col=col,Rowv=NULL,Colv=NA,
                  labRow=labRow)
   invisible()
+}
+
+#' @export
+top_genes <- function(object,basis.matrix=NULL,rank,ntop=5,gene_names=NULL){
+  
+  if(is.null(basis.matrix))
+    w <- basis(object)[[which(ranks(object)==rank)]]
+  else
+    w <- basis.matrix
+  if(is.null(gene_names)) gene_names <- rownames(w)
+  
+  for(k in seq_len(rank)){
+    v <- w[,k]
+    g <- order(v,decreasing=TRUE)[seq_len(ntop)]
+    if(k==1) dat <- data.frame(gene_names[g])
+    else dat <- cbind(dat,data.frame(gene_names[g]))
+  }
+  names(dat) <- seq_len(rank)
+  
+  return(dat)
+  
 }

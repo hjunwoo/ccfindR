@@ -516,8 +516,8 @@ setMethod('plot',signature="scNMFSet",definition =
     
      if(bayes){
        par(mfrow=c(1,1))
-       graphics::plot(x=mx$rank, y=mx$evidence, type='b',xlab='Rank', ylab=ylab,
-            bty='n') 
+       graphics::plot(x=mx$rank, y=mx$evidence, type='b',xlab='Rank', 
+                      ylab=ylab, bty='n') 
      }
      else{   
        par(mfrow=c(1,3))

@@ -160,6 +160,9 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
        s <- irlba::irlba(mat, rank)
      w <- abs(s$u)
      h <- abs(diag(s$d[seq_len(rank)]) %*% t(s$v))
+     scale <- hyper$bh/mean(h)
+     h <- h*scale
+     w <- w/scale
    }else stop('Unknown initializer')
   
    rownames(w) <- rownames(mat)
@@ -301,9 +304,9 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
      rownames(basis[[k]]) <- rownames(mat)
      if(normalize.signature){
        mut <- mut_list(kmer.size)
-       if(sum(mut%in%rownames(mat))==0)
-         stop('Signature normalization failed')
-       b <- colSums(basis[[k]][mut,])
+       id <- intersect(mut,rownames(mat))
+       if(length(id)==0) stop('Signature normalization failed')
+       b <- colSums(basis[[k]][id,])
        basis[[k]] <- t(t(basis[[k]])/b)
        coeff[[k]] <- b*coeff[[k]]
      }
@@ -335,6 +338,11 @@ vb_iterate <- function(irun, bundle){
    for(irank in seq_len(nrank)){
      
      rank <- bundle$ranks[irank]
+     if(bundle$initializer %in% c('svd','svd2') &
+        rank > min(nrow,ncol)){
+       warning('Rank exceeded min(nrow,ncol)')
+       break
+     }
 
      aw <- bundle$gamma.a[1]
      ah <- bundle$gamma.a[length(bundle$gamma.a)]
