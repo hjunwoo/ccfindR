@@ -1,5 +1,5 @@
 #' Plot signatures
-#' @example
+#' @examples
 #' set.seed(1)
 #' x <- simulate_whx(nrow=96,ncol=100,rank=3)
 #' mut <- mut_list(3)
@@ -54,7 +54,7 @@ plot_signatures <- function(obj,rank, col=NULL, kmer.size=3, pmax=NULL,
   for(k in seq_len(rank)){
     if(is.null(pmax)) pmaxk <- max(P[,k])*1.2
     else pmaxk <- pmax
-    barplot(P[,k], names.arg='', col=col2, border=NA, 
+    barplot(P[,k], names.arg='', col=col2, border=NA,
             ylab='Probability',ylim=c(0,pmaxk),las=1)
     sid <- colnames(cosmic)[which.max(cosim[k,])]
     cos <- max(cosim[k,])
@@ -87,21 +87,26 @@ mut_list <- function(kmer.size=3){
 }
 
 #' Compute cosine similarity scores
-cos_sim <- function(X,Y,kmer.size){
+#' @export
+cos_sim <- function(X,Y,kmer.size=NULL){
   
 # if(nrow(X)!=nrow(Y))  # reduce 5-mer into 3-mer
-  if(kmer.size==5)
+  if(!is.null(kmer.size)) if(kmer.size==5)
     X <- penta2trimer(X)
   
-  if(nrow(X)!=nrow(Y))
-#   stop('X and Y do not have the same number of rows')
+  if(nrow(X)!=nrow(Y)){
+    if(is.null(rownames(X)) | is.null(rownames(Y)))
+      stop('X and Y not comparable in cos_sim')
     Y <- Y[rownames(Y)%in% rownames(X),]
-  
-  Y <- Y[match(rownames(X),rownames(Y)),]
+  }
+  if(!is.null(rownames(X)) & !is.null(rownames(Y)))
+    Y <- Y[match(rownames(X),rownames(Y)),]
   m <- nrow(X)
   nx <- ncol(X)
   ny <- ncol(Y)
   cr <- matrix(0, nrow=nx, ncol=ny)
+  colnames(cr) <- colnames(Y)
+  rownames(cr) <- colnames(X)
   for(i in seq(1,nx)) for(j in seq(1,ny))
     cr[i,j] <- sum(X[,i]*Y[,j])/sqrt(sum(X[,i]^2)*sum(Y[,j]^2))
   

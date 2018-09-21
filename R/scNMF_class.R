@@ -506,35 +506,49 @@ setMethod('measure<-','scNMFSet',
 setMethod('plot',signature="scNMFSet",definition = 
             function(x){
     
-     bayes <- names(x@measure)[2]=='evidence'   
+     bayes <- names(x@measure)[2] %in% c('evidence','E')   
      dflag <- FALSE
      mx <- x@measure
-     if(bayes) ylab <- c('log(Evidence)')
+     if(bayes) ylab <- c('log ML')
      else ylab <- c('Likelihood','Dispersion', 'Cophenetic')
      
      if(sum(dim(mx))==0) stop('Quality measure empty.')
     
      if(bayes){
-       par(mfrow=c(1,1))
-       graphics::plot(x=mx$rank, y=mx$evidence, type='b',xlab='Rank', 
-                      ylab=ylab, bty='n') 
+       graphics::plot(NULL,xlim=c(mx$rank[1],mx$rank[nrow(mx)]),
+                      ylim=c(1.1*min(mx[,2]),0.9*max(mx[,2])),xlab='Rank', 
+                      ylab=ylab, bty='n')
+       if(names(mx)[3]=='Esd'){  # bootstrapped
+         dx <- 0.2
+         graphics::segments(x0=mx$rank,x1=mx$rank, y0=mx$E-mx$Esd,
+                            y1=mx$E+mx$Esd, col='red',xpd=NA)
+         graphics::segments(x0=mx$rank-dx,x1=mx$rank+dx, y0=mx$E-mx$Esd,
+                  y1=mx$E-mx$Esd, col='red',xpd=NA)
+         graphics::segments(x0=mx$rank-dx,x1=mx$rank+dx, y0=mx$E+mx$Esd,
+                  y1=mx$E+mx$Esd, col='red',xpd=NA)
+       }
+       graphics::points(x=mx$rank, y=mx[,2], type='b',xlab='Rank', 
+                      ylab=ylab, bty='n',pch=21,bg='white')
      }
      else{   
        par(mfrow=c(1,3))
        graphics::plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
           ylim=c(min(mx$likelihood),max(mx$likelihood)), xlab='Rank',
           ylab=ylab[1], bty='n')
-       graphics::points(x=mx$rank,y=mx$likelihood,pch=21,bg='white',type='b')
+       graphics::points(x=mx$rank,y=mx$likelihood,pch=21,
+                        bg='white',type='b')
      
        graphics::plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
           ylim=c(min(mx$dispersion),max(mx$dispersion)), xlab='Rank',
           ylab=ylab[2], bty='n')
-       graphics::points(x=mx$rank,y=mx$dispersion,pch=21,bg='white',type='b')
+       graphics::points(x=mx$rank,y=mx$dispersion,pch=21,bg='white',
+                        type='b')
      
        plot("",xlim=c(mx$rank[1], mx$rank[length(mx$rank)]),
           ylim=c(min(mx$cophenetic),max(mx$cophenetic)), xlab='Rank',
           ylab=ylab[3], bty='n')
-       graphics::points(x=mx$rank, y=mx$cophenetic, pch=21,bg='white',type='b')
+       graphics::points(x=mx$rank, y=mx$cophenetic, pch=21,bg='white',
+                        type='b')
      }
             
      return(invisible())
@@ -551,23 +565,33 @@ setMethod('plot',signature="scNMFSet",definition =
 #' s2 <- remove_zeros(s)
 #' s2
 #' @export
-remove_zeros <- function(object){
-  
-  count <- counts(object)
-  genes <- rowData(object)
-  cells <- colData(object)
-  
+remove_zeros <- function(object, remove.zeros=TRUE, fudge=NULL){
+
+  if(class(object)=='matrix')
+    count <- object
+  else
+    count <- counts(object)
+
   gene0 <- Matrix::rowSums(count)==0
   cell0 <- Matrix::colSums(count)==0
   ng0 <- sum(gene0)
   nc0 <- sum(cell0)
   
   if(ng0+nc0>0){
-    object <- object[!gene0,!cell0]
-    if(ng0>0)
-      cat(ng0,'empty rows removed\n')
-    if(nc0>0)
-      cat(nc0,'empty cells removed\n')
+    if(remove.zeros){     # shrink matrices
+      object <- object[!gene0,!cell0]
+      if(ng0>0)
+        cat(ng0,'empty rows removed\n')
+      if(nc0>0)
+        cat(nc0,'empty cells removed\n')
+    }
+    else{
+      if(is.null(fudge)) fudge <- .Machine$double.eps
+      if(class(object)=='matrix')
+        object[gene0,] <- object[,cell0] <- fudge
+      else
+        counts(object)[gene0,] <- counts(object)[,cell0] <- fudge
+    }
   }
   object
 }

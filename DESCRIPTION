@@ -1,6 +1,6 @@
 Package: ccfindR
-Version: 1.1.1
-Date: 2018-06-14
+Version: 1.1.2
+Date: 2018-09-18
 Title: Cancer Clone Finder
 Authors@R: c(person('Jun','Woo',role=c('aut','cre'),email='jwoo@umn.edu'),
              person('Jinhua','Wang',role='aut',email='wangjh@umn.edu'))
@@ -25,13 +25,15 @@ Imports: stats,
          RcppEigen,
          Rsamtools,
          Biostrings,
-         maftools
+         maftools,
+         clue
 LinkingTo: Rcpp, RcppEigen
 biocViews: Transcriptomics, 
            SingleCell, 
            Bayesian, 
            Clustering
-Description: A collection of tools for cancer single cell RNA-seq analysis. 
+Description: A collection of tools for cancer genomic data clustering
+    analyses, including those for single cell RNA-seq and mutation data.
     Cell clustering and feature gene selection analysis employ maximum 
     likelihood and Bayesian non-negative matrix factorization algorithm. 
     Input data set consists of RNA count matrix, gene, and cell bar code 

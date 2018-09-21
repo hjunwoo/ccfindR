@@ -5,10 +5,12 @@
 \title{Bayesian NMF inference of count matrix}
 \usage{
 vb_factorize(object, ranks = 2, nrun = 1, verbose = 2,
-  progress.bar = TRUE, estimator = "mean", initializer = "random",
+  progress.bar = TRUE, estimator = "mean", initializer = "svd2",
   Itmax = 10000, hyper.update = rep(TRUE, 4), gamma.a = 1, gamma.b = 1,
-  Tol = 1e-05, hyper.update.n0 = 0, hyper.update.dn = 1,
-  connectivity = TRUE, fudge = NULL, ncores = 1, useC = FALSE)
+  Tol = 1e-05, hyper.update.n0 = 10, hyper.update.dn = 1,
+  connectivity = TRUE, fudge = NULL, ncores = 1, useC = TRUE,
+  normalize.signature = FALSE, kmer.size = 3, unif.stop = TRUE,
+  nboot = 1)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object containing count matrix.}
@@ -63,6 +65,8 @@ regularization.}
 
 \item{ncores}{Number of processors (cores) to run. If \code{ncores > 1},
 parallelization is attempted.}
+
+\item{useC}{Use C++ version of updates for speed.}
 }
 \value{
 Object of class \code{scNMFSet} with factorization slots filled.

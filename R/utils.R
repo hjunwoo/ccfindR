@@ -878,3 +878,95 @@ cluster_id <- function(object, rank=2){
   names(cid) <- colnames(object)
   cid
 }
+
+#' Computes averages over bootstrapped factors
+#' @param object List of \code{scNMF} objects containing bootstrapped
+#'        sample factorizations
+#' @param reorder Reorder clusters of each resampled factor matrices
+#'        to have maximum overlap with reference
+#' @param ref Reference basis matrix for reordering. Number of rows 
+#'        must be equal to or larger than those in \code{object}. If
+#'        the numbers of rows differ, row names are used for matching.
+#' @param kmer.size For signature discovery, k-mer sizes of 3 or 5 
+#'        can be specified.
+#' @return Object containing mean (and sd for marginal likelihood) factorization
+#'        measure, basis/coefficient matrices averaged over resampling data.
+#' @examples
+#' set.seed(1)
+#' x <- simulate_whx(nrow=50, ncol=100, rank=5)
+#' s <- scNMFset(x$x)
+#' slist <- vb_factorize(s, ranks=seq(2,8), nboot=10)
+#' smean <- boot_ave(slist)
+#' plot(smean) 
+#' @export
+boot_ave <- function(object, reorder=TRUE, ref=NULL, kmer.size=NULL){
+  
+  if(class(object)!='list') stop('Object in boot_ave is not a list')
+  nb <- length(object)
+  mobj <- object[[1]]
+  nrank <- length(ranks(mobj))
+#  if(nb > 1){
+#    for(k in seq(2,nb)) 
+#      if(length(ranks(object[[k]])) < nrank) 
+#        nrank <- length(ranks(object[[k]]))   # minimum number of ranks
+#  }
+  measure(mobj) <- measure(mobj)[seq_len(nrank),]
+  me <- measure(mobj)$evidence
+  
+  if(is.null(ref))
+    init <- 2
+  else init <- 1
+  for(i in seq(init,nb)){
+    measure(mobj) <- measure(mobj) + measure(object[[i]])[seq_len(nrank),]
+    me <- cbind(me, measure(object[[i]])$evidence[seq_len(nrank)])
+    for(k in seq_len(nrank)){
+      if(reorder){
+        if(is.null(ref)) 
+          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(object[[1]])[[k]], 
+                           kmer.size=kmer.size)
+        else
+          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(ref)[[k]], 
+                           kmer.size=kmer.size)
+        perm <- clue::solve_LSAP(x=cosim, maximum=TRUE)
+        perm <- match(seq_len(ranks(object[[i]])[k]), perm)
+                # permutation with max.overlap to ref
+        basis(object[[i]])[[k]] <- basis(object[[i]])[[k]][,perm]
+        coeff(object[[i]])[[k]] <- coeff(object[[i]])[[k]][perm,]
+      }
+      basis(mobj)[[k]] <- basis(mobj)[[k]] + basis(object[[i]])[[k]]
+      coeff(mobj)[[k]] <- coeff(mobj)[[k]] + coeff(object[[i]])[[k]]
+    }
+  }
+  sd <- apply(me, 1, sd)
+  me <- rowMeans(me)
+  measure(mobj) <- measure(mobj)/nb
+  for(k in seq_len(nrank)){
+    basis(mobj)[[k]] <- basis(mobj)[[k]]/nb
+    coeff(mobj)[[k]] <- coeff(mobj)[[k]]/nb
+  }
+  me2 <- data.frame(rank=ranks(object[[1]]),E=me, Esd=sd,
+                    aw=measure(mobj)$aw,bw=measure(mobj)$bw,
+                    ah=measure(mobj)$ah,bh=measure(mobj)$bh,
+                    nunif=measure(mobj)$nunif)
+  measure(mobj) <- me2
+  
+  return(mobj)
+}
+
+#' Reorder clusters with respect to reference
+#' @export
+#' 
+reorder_clusters <- function(object, ref){
+  
+  n <- length(ranks(object))
+  for(k in seq_len(n)){
+    w <- basis(object)[[k]]
+    cosim <- cos_sim(X=w, Y=ref)
+#   perm <- clue::solve_LSAP(x=cosim, maximum=TRUE)
+    perm <- apply(cosim,1,which.max)
+    idx <- order(perm)
+    basis(object)[[k]] <- basis(object)[[k]][,idx]
+    coeff(object)[[k]] <- coeff(object)[[k]][idx,]
+  }
+  return(object)
+}

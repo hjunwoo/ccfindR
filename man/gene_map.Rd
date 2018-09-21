@@ -5,8 +5,8 @@
 \title{Plot heatmap of metagene matrix}
 \usage{
 gene_map(object, rank, markers = NULL, subtract.mean = TRUE, log = TRUE,
-  max.per.cluster = 10, Colv = NA, gene.names = NULL, main = "Genes",
-  col = NULL, ...)
+  max.per.cluster = 10, Colv = NA, gene.names = NULL, scheme = "max",
+  main = "Genes", col = NULL, ...)
 }
 \arguments{
 \item{object}{Object of class \code{scNMFSet}.}
