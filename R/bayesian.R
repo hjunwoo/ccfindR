@@ -53,7 +53,7 @@ hyper_update <- function(hyper.update, wh, hyper, Niter=100, Tol=1e-4){
 }
 
 # Single update step in Bayesian NMF inference
-vbnmf_updateR <- function(x, wh, r, estimator, hyper, fudge=NULL){
+vbnmf_updateR <- function(x, wh, r, hyper, fudge=NULL){
 
    x <- as.matrix(x)
    n <- dim(x)[1]
@@ -96,19 +96,13 @@ vbnmf_updateR <- function(x, wh, r, estimator, hyper, fudge=NULL){
    U <- sum(U1) + sum(U2) + sum(U3)
    U <- U/(n*m)  # log evidence per feature per cell
   
-   if(estimator=='map'){
-     w <- as.matrix(wh$w)  # MAP
-     h <- as.matrix(wh$h)  # MAP
-     w <- (aw - 1 + w*((x/(w%*%h))%*%t(h)))/(aw/bw + 
-                                        t(replicate(n, rowSums(h))))
-     h <- (ah - 1 + h*(t(w)%*%(x/(w%*%h))))/(ah/bh + 
-                                        replicate(m, colSums(w)))
-   }else{
-     w <- ew
-     h <- eh
-   }
+   w <- ew    
+   h <- eh
+   
+   dw <- alw*bew^2
+   dh <- alh*beh^2
     
-   list(w=w, h=h, lw=lw, lh=lh, ew=ew, eh=eh, lkh=U)
+   list(w=w, h=h, lw=lw, lh=lh, ew=ew, eh=eh, lkh=U, dw=dw, dh=dh)
 }
 
 # Initialize bNMF inference
@@ -165,12 +159,15 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
      w <- w/scale
    }else stop('Unknown initializer')
   
-   rownames(w) <- rownames(mat)
-   colnames(w) <- seq_len(rank)
-   rownames(h) <- seq_len(rank)
-   colnames(h) <- colnames(mat)
+   dw <- matrix(0, nrow=nrow, ncol=rank)
+   dh <- matrix(0, nrow=rank, ncol=ncol)
+
+   rownames(w) <- rownames(dw) <- rownames(mat)
+   colnames(w) <- colnames(dw) <- seq_len(rank)
+   rownames(h) <- rownames(dh) <- seq_len(rank)
+   colnames(h) <- colnames(dh) <- colnames(mat)
   
-   list(w=w, h=h, lw=w, lh=h, ew=w, eh=h)
+   list(w=w, h=h, lw=w, lh=h, ew=w, eh=h, dw=dw, dh=dh)
 }
 
 #' Bayesian NMF inference of count matrix
@@ -192,11 +189,6 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
 #'        0, silent.
 #' @param progress.bar Display progress bar with \code{verbose = 1} for 
 #'       multiple runs.
-#' @param estimator If \code{'mean'}, mean values of factor matrices 
-#'        \code{W} and 
-#'        \code{H} in E-step of EM algorithm are stored in \code{object}. 
-#'        If \code{estimator = 'max'}, maximum a posteriori (MAP) 
-#'        solutions are used instead.
 #' @param Itmax Maximum no. of iteration.
 #' @param hyper.update Vector of four logicals, each indcating whether
 #'        hyperparameters \code{c(aw, bw, ah, bh)} should be optimized.
@@ -219,9 +211,6 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
 #' @param useC  Use C++ version of updates for speed.
 #' @param ncores Number of processors (cores) to run. If \code{ncores > 1},
 #'        parallelization is attempted.
-#' @param boot.seed Integer vector of length \code{nboot}. Can be used to
-#'         distribute random number seed for each bootstrapped sample 
-#'         for reproducibility.
 #' @return Object of class \code{scNMFSet} with factorization slots filled.
 #' 
 #' @details When run with multiple values of \code{ranks}, factorization is 
@@ -237,16 +226,15 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
 #' plot(s)
 #' @export
 vb_factorize <- function(object, ranks=2, nrun=1, verbose=2, 
-                         progress.bar=TRUE, estimator='mean', 
-                         initializer='svd2',
+                         progress.bar=TRUE, initializer='random',
                          Itmax=10000, hyper.update=rep(TRUE,4), 
                          gamma.a=1, gamma.b=1, Tol=1e-5, 
                          hyper.update.n0=10, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
                          ncores=1, useC=TRUE,
                          normalize.signature=FALSE,
-                         kmer.size=3, unif.stop=TRUE, 
-                         bootstrap=FALSE, nboot=10, boot.seed=NULL){
+                         kmer.size=3, unif.stop=TRUE,
+                         seeds=NULL){
   
    if(is.null(fudge)) fudge <- .Machine$double.eps
    mat <- counts(object) # S4 class scNMFSet
@@ -262,165 +250,160 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    ranks <- ranks[ranks <= ncol(mat)] # rank <= no. of columns
    nrank <- length(ranks)
    
-   if(!bootstrap) nboot <- 1
+   if(!is.null(seeds)) if(length(seeds)<nrun)
+     stop(paste0(nrun,' random number seeds required'))
    
    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
                   gamma.b=gamma.b, initializer=initializer, 
                   connectivity=connectivity, 
-                  Itmax=Itmax, estimator=estimator, fudge=fudge, 
-                  useC=useC,
+                  Itmax=Itmax, fudge=fudge, useC=useC,
                   hyper.update=hyper.update, 
                   hyper.update.n0=hyper.update.n0, 
                   ncores=ncores, hyper.update.dn=hyper.update.dn, Tol=Tol,
-                  unif.stop=unif.stop, nrun=nrun, 
-                  bootstrap=bootstrap, boot.seed=boot.seed)
+                  unif.stop=unif.stop, nrun=nrun, seeds=seeds)
    if(ncores==1)
-     vb <- lapply(seq_len(nboot), FUN=vb_iterate, bundle)
-   else{   # parallel
-     Rmpi::mpi.bcast.Robj2slave(bundle)
-     vb <- Rmpi::mpi.applyLB(seq_len(nboot), FUN=vb_iterate, bundle)
+     vb <- lapply(seq_len(nrun), FUN=vb_iterate, bundle)
+   else    # parallel
+     vb <- Rmpi::mpi.applyLB(seq_len(nrun), FUN=vb_iterate, bundle)
+
+   basis <- dbasis <- coeff <- dcoeff <- vector('list',nrank)
+   rdat <- awdat <- bwdat <- ahdat <- bhdat <- nunif <- c()
+   ranks2 <- c()
+   for(k in seq_len(nrank)){     # find maximum solutions for each rank
+     rmax <- -Inf
+     for(i in seq_len(nrun)){
+       if(vb[[i]]$rdat[k] > rmax){
+         imax <- i
+         rmax <- vb[[i]]$rdat[k]
+       }
+     }
+     if(rmax==-Inf) next
+     ranks2 <- c(ranks2,ranks[k])
+     rdat <- c(rdat,rmax)
+     basis[[k]] <- vb[[imax]]$wdat[[k]]
+     coeff[[k]] <- vb[[imax]]$hdat[[k]]
+     dbasis[[k]] <- vb[[imax]]$dwdat[[k]]
+     dcoeff[[k]] <- vb[[imax]]$dhdat[[k]]
+     awdat <- c(awdat, vb[[imax]]$hyperp[[k]]$aw)
+     bwdat <- c(bwdat, vb[[imax]]$hyperp[[k]]$bw)
+     ahdat <- c(ahdat, vb[[imax]]$hyperp[[k]]$ah)
+     bhdat <- c(bhdat, vb[[imax]]$hyperp[[k]]$bh)
+     nunif <- c(nunif, vb[[imax]]$nunif[k])
+     
+     rownames(basis[[k]]) <- rownames(dbasis[[k]]) <- rownames(mat)
+     if(normalize.signature){
+       mut <- mut_list(kmer.size)
+       id <- intersect(mut, rownames(mat))
+       if(length(id)==0) stop('Signature normalization failed')
+       b <- colSums(basis[[k]][id,])
+       basis[[k]] <- t(t(basis[[k]])/b)
+       dbasis[[k]] <- t(t(dbasis[[k]])/b)
+       coeff[[k]] <- b*coeff[[k]]
+       dcoeff[[k]] <- b*dcoeff[[k]]
+     }
+     colnames(coeff[[k]]) <- colnames(dcoeff[[k]]) <- colnames(mat)
    }
    
-   obj <- list()
-   for(i in seq_len(nboot)){
-     ranks <- vb[[i]]$ranks
-     obj[[i]] <- object
-     obj[[i]]@ranks <- ranks
-     obj[[i]]@basis <- vb[[i]]$wdat
-     obj[[i]]@coeff <- vb[[i]]$hdat
-     aw <- ah <- bw <- bh <- c()
-     nrank <- length(ranks)
-     for(k in seq_len(nrank)){
-       aw <- c(aw,vb[[i]]$hyperp[[k]]$aw)
-       ah <- c(ah,vb[[i]]$hyperp[[k]]$ah)
-       bw <- c(bw,vb[[i]]$hyperp[[k]]$bw)
-       bh <- c(bh,vb[[i]]$hyperp[[k]]$bh)
-     }
-     e <- vb[[i]]$rdat
-     nunif <- vb[[i]]$nunif
-     igood <- e > -Inf
-     if(sum(igood)>0){
-       ranks <- ranks[igood]
-       nunif <- nunif[igood]
-       e <- e[igood]
-     }
-     obj[[i]]@measure <- 
-       data.frame(rank=ranks, evidence=e, aw=aw, bw=bw, ah=ah, bh=bh, 
-                  nunif=nunif)
-   }
-   if(!bootstrap) obj <- obj[[1]]
-   return(obj)
+   object@ranks <- ranks2
+   object@basis <- basis
+   object@dbasis <- dbasis
+   object@coeff <- coeff
+   object@dcoeff <- dcoeff
+   object@measure <- data.frame(rank=ranks2, lml=rdat, aw=awdat, bw=bwdat, 
+                                ah=ahdat, bh=bhdat, nunif=nunif)
+   return(object)
 }
 
-vb_iterate <- function(iboot, bundle){
+vb_iterate <- function(irun, bundle){
   
-   if(bundle$bootstrap){
-     if(!is.null(bundle$boot.seed))
-       set.seed(bundle$boot.seed[iboot])    # set seed for reproducibility
-     bundle$mat <- bootstrap(bundle$mat)
-   }
-
    nrow <- dim(bundle$mat)[1]
    ncol <- dim(bundle$mat)[2]
    nrank <- length(bundle$ranks)
+   if(!is.null(bundle$seeds))
+     set.seed(bundle$seeds[irun])
+   else if(bundle$ncores>1)   # randomize seed only if parallel
+     set.seed(runif(1000000*irun))
    
-   wdat <- hdat <- hyperp <- list()
    rdat <- rep(-Inf, nrank)
-   nunif <- NULL
+   wdat <- hdat <- dwdat <- dhdat <- hyperp <- list()
+   nunif <- rep(0, nrank)
    
-   for(irun in seq_len(bundle$nrun)){
+   if(bundle$verbose >= 2) if(bundle$nrun > 1) 
+     cat('Run ',irun,'\n',sep='')
+   
+   for(irank in seq_len(nrank)){
      
-     if(bundle$verbose >= 2) if(bundle$nrun > 1) 
-       cat('Run ',irun,'\n',sep='')
-     for(irank in seq_len(nrank)){
+     rank <- bundle$ranks[[irank]]
+     if(rank > min(nrow,ncol))
+       stop('Rank exceeded min(nrow,ncol)')
+     aw <- bundle$gamma.a[1]
+     ah <- bundle$gamma.a[length(bundle$gamma.a)]
+     bw <- bundle$gamma.b[1]
+     bh <- bundle$gamma.b[length(bundle$gamma.b)]
      
-       rank <- bundle$ranks[irank]
-       if(bundle$initializer %in% c('svd','svd2') &
-          rank > min(nrow,ncol)){
-         warning('Rank exceeded min(nrow,ncol)')
-         break
-       }
-
-       aw <- bundle$gamma.a[1]
-       ah <- bundle$gamma.a[length(bundle$gamma.a)]
-       bw <- bundle$gamma.b[1]
-       bh <- bundle$gamma.b[length(bundle$gamma.b)]
-     
-       hyper <- hyper0 <- list(aw=aw, bw=bw, ah=ah, bh=bh)
+     hyper <- hyper0 <- list(aw=aw, bw=bw, ah=ah, bh=bh)
        
-       if(bundle$connectivity){
-         npair <- ncol*(ncol-1)/2
-         conav <- rep(0, npair)
-       }
+     if(bundle$connectivity){
+       npair <- ncol*(ncol-1)/2
+       conav <- rep(0, npair)
+     }
 
-       hyper <- hyper0
-       wh <- vb_init(nrow, ncol, bundle$mat, rank, hyper=hyper, 
+     hyper <- hyper0
+     wh <- vb_init(nrow, ncol, bundle$mat, rank, hyper=hyper, 
                    initializer=bundle$initializer)
-       lk0 <- 0
-       for(it in seq_len(bundle$Itmax)){
-         if(bundle$useC)
-           wh <- vbnmf_update(as.matrix(bundle$mat),wh,hyper,c(bundle$fudge))
-         else
-           wh <- vbnmf_updateR(bundle$mat, wh, rank, estimator=bundle$estimator, 
-                        hyper, fudge=bundle$fudge)
-         if(it > bundle$hyper.update.n0 & it%%bundle$hyper.update.dn==0) 
-           hyper <- hyper_update(bundle$hyper.update, wh, hyper, Niter=100, 
+     lk0 <- 0
+     for(it in seq_len(bundle$Itmax)){
+       if(bundle$useC)
+         wh <- vbnmf_update(as.matrix(bundle$mat),wh,hyper,c(bundle$fudge))
+       else
+         wh <- vbnmf_updateR(bundle$mat, wh, rank, hyper, fudge=bundle$fudge)
+       if(it > bundle$hyper.update.n0 & it%%bundle$hyper.update.dn==0) 
+         hyper <- hyper_update(bundle$hyper.update, wh, hyper, Niter=100, 
                             Tol=1e-3)
-         if(is.na(wh$lkh)) break
-         if(it>1) if(it > bundle$hyper.update.n0)
-           if(wh$lkh>=lk0) if(abs(1-wh$lkh/lk0) < bundle$Tol) break
-         lk0 <- wh$lkh
-         if(bundle$verbose >= 3) cat(it,', log(evidence) = ',lk0,', aw = ',
+       if(is.na(wh$lkh)) break
+       if(it>1) if(it > bundle$hyper.update.n0)
+          if(wh$lkh>=lk0) if(abs(1-wh$lkh/lk0) < bundle$Tol) break
+       lk0 <- wh$lkh
+       if(bundle$verbose >= 3) cat(it,', log(evidence) = ',lk0,', aw = ',
                      hyper$aw,', bw = ',hyper$bw,', ah = ',hyper$ah,
                      ', bh = ',hyper$bh, '\n',sep='')
-       }
-       if(bundle$connectivity){
-         cnn <- connectivity(wh$eh)
-         conav <- conav + cnn
-         disp <- dispersion(conav/irun,ncol)
-       }
-       if(bundle$verbose >= 2){
-         if(bundle$connectivity) cat('Rank = ',rank,
-                                    ':, Nsteps =',it,', log(evidence) =',lk0,
+     }
+     if(bundle$connectivity){
+       cnn <- connectivity(wh$eh)
+       conav <- conav + cnn
+       disp <- dispersion(conav/irun,ncol)
+     }
+     if(bundle$verbose >= 2){
+       if(bundle$connectivity) cat('Rank = ',rank,
+                                    ': Nsteps =',it,', log(evidence) =',lk0,
                          ', hyper = (',hyper$aw,',',hyper$bw,',',hyper$ah,',',
                          hyper$bh,')', ', dispersion = ',disp,'\n',sep='')
-         else cat('Rank = ',rank, ': Nsteps =',it,', log(evidence) =',lk0,
+       else cat('Rank = ',rank, ': Nsteps =',it,', log(evidence) =',lk0,
              ', hyper = (',hyper$aw,',',hyper$bw,',',hyper$ah,',',
              hyper$bh,')\n',sep='')
-         if(irank==nrank) cat('\n')
-       }
-     
-       contains.unif <- apply(wh$ew,2,
-                              function(x){abs(max(x)-min(x))<bundle$Tol})
-       nunif <- c(nunif, sum(contains.unif))
-       if(sum(contains.unif) > 0){
-         warning('Rank ',rank,' row/column ',
-              paste(which(contains.unif),collapse=','),' constant.')
-         if(bundle$unif.stop){
-           warning('Rank scan stopped for rank >= ',rank)
-           if(irank==1) stop('Rerun with lower ranks')
-           break
-         }
-       }
-       if(lk0 <= rdat[irank]) next   # store factors only for a new maximum
-       
-       if(bundle$estimator=='mean'){
-         wdat[[irank]] <- wh$ew
-         hdat[[irank]] <- wh$eh
-       } else{
-         wdat[[irank]] <- wh$w
-         hdat[[irank]] <- wh$h
-       }
-       rdat[irank] <- lk0
-       hyperp[[irank]] <- hyper
      }
-   }   # end of irun-loop
+     
+     contains.unif <- apply(wh$ew,2,
+                              function(x){abs(max(x)-min(x))<bundle$Tol})
+     if(sum(contains.unif)>0){
+       warning('Rank ',rank,' row/column ',
+              paste(which(contains.unif),collapse=','),' constant.')
+       if(bundle$unif.stop){
+         warning('Rank scan stopped for rank >= ',rank)
+         if(irank==1) stop('Rerun with lower ranks')
+         break
+       }
+     }
+     rdat[irank] <- lk0
+     wdat[[irank]] <- wh$ew
+     hdat[[irank]] <- wh$eh
+     dwdat[[irank]] <- sqrt(wh$dw)
+     dhdat[[irank]] <- sqrt(wh$dh) 
+     hyperp[[irank]] <- hyper
+   }   # end of irank-loop
    
-   igood <- rdat>-Inf
-   rdat <- rdat[igood]
-   nunif <- nunif[igood]
-   vb <- list(ranks=bundle$ranks[igood],
-              rdat=rdat, wdat=wdat, hdat=hdat, hyperp=hyperp, nunif=nunif)
+   vb <- list(rdat=rdat, wdat=wdat, hdat=hdat, hyperp=hyperp, nunif=nunif,
+              dwdat=dwdat,dhdat=dhdat)
    return(vb)
 }
 
@@ -430,26 +413,32 @@ vb_iterate <- function(iboot, bundle){
 #' @export
 bootstrap <- function(object, remove.zeros=FALSE){
   
-   if(class(object)=='matrix')
+   if(class(object) %in% c('matrix','dgCMatrix'))
      mat <- object
    else
      mat <- counts(object)
    m <- nrow(mat)
    n <- ncol(mat)
    
-   mat <- apply(mat, 2, function(x){
-     prob <- x/sum(x)
-     y <- sample(seq_len(m),size=sum(x),replace=TRUE, prob=prob)
-     z <- table(factor(y,levels=seq_len(m)))
-     as.vector(z)
-   })
-   
-   if(class(object)=='matrix'){
-     mat <- remove_zeros(mat,remove.zeros)
+   row <- rownames(mat)
+   while(TRUE){
+     bat <- apply(mat, 2, function(x){
+       prob <- x/sum(x)
+       y <- sample(seq_len(m),size=sum(x),replace=TRUE, prob=prob)
+       z <- table(factor(y,levels=seq_len(m)))
+       as.vector(z)
+       })
+     if(sum(rowSums(bat>0)==0)==0) break   # avoid empty rows
+   }
+   rownames(bat) <- row
+   mat <- bat
+
+   if(class(object) %in% c('matrix','dgCMatrix')){
+#    if(remove.zeros) mat <- remove_zeros(mat,remove.zeros)
      return(mat)
    }
    counts(object) <- mat
-   object <- remove_zeros(object,remove.zeros)
+#  object <- remove_zeros(object,remove.zeros)
    
    return(object)
 }

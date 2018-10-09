@@ -1,10 +1,10 @@
 Package: ccfindR
-Version: 1.1.2
-Date: 2018-09-18
+Version: 1.1.4
+Date: 2018-09-28
 Title: Cancer Clone Finder
 Authors@R: c(person('Jun','Woo',role=c('aut','cre'),email='jwoo@umn.edu'),
              person('Jinhua','Wang',role='aut',email='wangjh@umn.edu'))
-Depends: R (>= 3.5.0),
+Depends: R (>= 3.5.1),
 Imports: stats,
          S4Vectors,
          BiocGenerics,
@@ -25,7 +25,6 @@ Imports: stats,
          RcppEigen,
          Rsamtools,
          Biostrings,
-         maftools,
          clue
 LinkingTo: Rcpp, RcppEigen
 biocViews: Transcriptomics, 

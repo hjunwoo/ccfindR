@@ -9,15 +9,14 @@
 #' plot_signatures(s,rank=3)
 #' 
 #' @export
-plot_signatures <- function(obj,rank, col=NULL, kmer.size=3, pmax=NULL,
+plot_signatures <- function(obj,dobj=NULL,rank, 
+                            col=NULL, kmer.size=3, pmax=NULL,
                             cosmic=NULL, similarity.cutoff=0.5,
-                            mfrow=c(rank,1)){
+                            mfrow=c(rank,1),show.sd=TRUE){
 
   old.par <- graphics::par(no.readonly=TRUE)
   # read cosmic signature list
   if(is.null(cosmic))
-#   cosmic <- system.file('extdata','cosmic_signatures_v2.txt',
-#                          package='ccfindR')
     cosmic <- system.file('extdata','PCAWG_SBS_v3.txt',
                           package='ccfindR')
   cosmic <- read.table(cosmic,header=TRUE,sep=' ')
@@ -26,11 +25,13 @@ plot_signatures <- function(obj,rank, col=NULL, kmer.size=3, pmax=NULL,
   if(class(obj)=='scNMFSet'){
     id <- which(ranks(obj)==rank)
     P <- basis(obj)[[id]]    # signatures
+    dP <- dbasis(obj)[[id]]
     E <- coeff(obj)[[id]]    # mutation loads
   }
   else if(class(obj)=='matrix'){
     P <- obj
     rank <- ncol(P)
+    dP <- dobj
   }
   
   graphics::par(mfrow=mfrow,lwd=0.1)
@@ -54,8 +55,14 @@ plot_signatures <- function(obj,rank, col=NULL, kmer.size=3, pmax=NULL,
   for(k in seq_len(rank)){
     if(is.null(pmax)) pmaxk <- max(P[,k])*1.2
     else pmaxk <- pmax
-    barplot(P[,k], names.arg='', col=col2, border=NA,
+    bp <- barplot(P[,k], names.arg='', col=col2, border=NA,
             ylab='Probability',ylim=c(0,pmaxk),las=1)
+    if(show.sd){
+      segments(x0=bp,x1=bp,y0=P[,k]-dP[,k],y1=P[,k]+dP[,k],col='black',lty=1,lwd=0.5)
+      dx <- (bp[2]-bp[1])*0.3
+      segments(x0=bp-dx,x1=bp+dx,y0=P[,k]-dP[,k],y1=P[,k]-dP[,k],col='black',lty=1,lwd=0.5)
+      segments(x0=bp-dx,x1=bp+dx,y0=P[,k]+dP[,k],y1=P[,k]+dP[,k],col='black',lty=1,lwd=0.5)
+    }  
     sid <- colnames(cosmic)[which.max(cosim[k,])]
     cos <- max(cosim[k,])
     if(cos>similarity.cutoff)

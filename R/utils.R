@@ -433,7 +433,7 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL, 
                         subtract.mean=TRUE, log=TRUE, scheme='max',
                         sweep=TRUE,
-                        ntop=1, max.per.cluster = 10, Colv=NA,
+                        max.per.cluster = 10, Colv=NA,
                         feature.names=NULL, perm=NULL,
                         main='Feature map', cscale=NULL, 
                         cex.cluster=1, cex.feature=0.5, mar=NULL, ...){
@@ -448,14 +448,14 @@ feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL,
   if(is.null(basis.matrix)){
     w <- basis(object)[ranks(object)==rank][[1]][,perm]
     meta <- meta_genes(object, rank=rank, subtract.mean=subtract.mean,
-                       scheme=scheme, ntop=ntop,
+                       scheme=scheme, gene_names=feature.names,
                        log=log, max.per.cluster=max.per.cluster)
     colnames(w) <- seq_len(rank)
   }
   else{
     w <- basis.matrix
     meta <- meta_genes(basis.matrix=w, rank=rank, subtract.mean=subtract.mean,
-                       scheme=scheme, ntop=ntop,
+                       scheme=scheme, gene_names=feature.names,
                        log=log, max.per.cluster=max.per.cluster)
   }
 
@@ -562,8 +562,7 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' @param subtract.mean Standardize the matrix elements with means 
 #'        within each row.
 #' @param log Use geometric mean and division instead of arithmetic 
-#'        mean and subtraction
-#'        with \code{subtract.mean}.
+#'        mean and subtraction with \code{subtract.mean}.
 #' @return List of vectors each containing metagene names of clusters.
 #' @examples
 #' set.seed(1)
@@ -574,13 +573,15 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' s <- vb_factorize(s,ranks=seq(2,5))
 #' meta_genes(s, rank=4)
 #' @export
-meta_genes <- function(object, rank, basis.matrix=NULL, 
-                       max.per.cluster=10,gene_names=NULL,
+meta_genes <- function(object, rank, basis.matrix=NULL, dbasis=NULL,
+                       max.per.cluster=Inf,gene_names=NULL,
                        subtract.mean=TRUE,log=TRUE,
-                       scheme='max',ntop=1){
+                       scheme='max', frac.var=1){
   
   if(is.null(basis.matrix)){
-    w <- basis(object)[ranks(object) == rank][[1]]
+    idx <- ranks(object)==rank
+    w <- basis(object)[idx][[1]]
+    cw <- dbasis(object)[idx][[1]]/w
     if(subtract.mean){
       if(log) w <- log10(w)
       w <- w - rowMeans(w)
@@ -589,19 +590,30 @@ meta_genes <- function(object, rank, basis.matrix=NULL,
   } else{
     w <- basis.matrix
     rank <- ncol(w)
+    cw <- dbasis/w
   }
-  if(!is.null(gene_names)) rownames(w) <- gene_names
+  if(!is.null(gene_names)) rownames(w) <- rownames(cw) <- gene_names
   nmax <- min(max.per.cluster, nrow(w))
   select <- vector('list',rank)
   for(k in seq_len(rank)){
-    v <- w[order(w[,k],decreasing=TRUE),]
-    if(scheme=='max')
-      if(ntop==1) flag <- apply(v,1,function(x){x[k]==max(x)})
-      else flag <- apply(v,1,function(x){
-                  k %in% order(x,decreasing=TRUE)[seq_len(ntop)]})
+    idx <- order(w[,k],decreasing=TRUE)
+    v <- w[idx,]
+    cv <- cw[idx,]
+    itmp <- NULL
+    if(scheme=='max'){
+      for(i in seq_len(nrow(v))){
+        x <- v[i,] 
+        ix <- order(x,decreasing=TRUE)
+        flag <- k==ix[1] 
+        if(!flag) next
+        xp <- log(mean(exp(x[ix[-1]])))
+        if(1-xp/x[k] > cv[i,k]*frac.var)
+          itmp <- c(itmp,i)
+      }
+    }
     else if(scheme=='sort')
-      flag <- rep(TRUE,length(v))
-    tmp <- rownames(v)[which(flag)]
+      itmp <- seq_len(nrow(v))
+    tmp <- rownames(v)[itmp]
     if(length(tmp) > nmax) tmp <- tmp[seq_len(nmax)]
     select[[k]] <- tmp
   }
@@ -905,27 +917,23 @@ boot_ave <- function(object, reorder=TRUE, ref=NULL, kmer.size=NULL){
   nb <- length(object)
   mobj <- object[[1]]
   nrank <- length(ranks(mobj))
-#  if(nb > 1){
-#    for(k in seq(2,nb)) 
-#      if(length(ranks(object[[k]])) < nrank) 
-#        nrank <- length(ranks(object[[k]]))   # minimum number of ranks
-#  }
   measure(mobj) <- measure(mobj)[seq_len(nrank),]
   me <- measure(mobj)$evidence
   
-  if(is.null(ref))
-    init <- 2
-  else init <- 1
-  for(i in seq(init,nb)){
+  if(is.numeric(ref))
+    refo <- object[[ref]]
+  else refo <- ref
+  for(i in seq_len(nb)){
+    if(is.numeric(ref)) if(i==ref) next
     measure(mobj) <- measure(mobj) + measure(object[[i]])[seq_len(nrank),]
     me <- cbind(me, measure(object[[i]])$evidence[seq_len(nrank)])
     for(k in seq_len(nrank)){
       if(reorder){
-        if(is.null(ref)) 
+        if(is.null(refo)) 
           cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(object[[1]])[[k]], 
                            kmer.size=kmer.size)
         else
-          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(ref)[[k]], 
+          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(refo)[[k]], 
                            kmer.size=kmer.size)
         perm <- clue::solve_LSAP(x=cosim, maximum=TRUE)
         perm <- match(seq_len(ranks(object[[i]])[k]), perm)
@@ -956,13 +964,17 @@ boot_ave <- function(object, reorder=TRUE, ref=NULL, kmer.size=NULL){
 #' Reorder clusters with respect to reference
 #' @export
 #' 
-reorder_clusters <- function(object, ref){
+reorder_clusters <- function(object, ref=NULL){
   
+  if(is.null(ref)){
+    cosmic <- system.file('extdata','PCAWG_SBS_v3.txt',
+                        package='ccfindR')
+    ref <- read.table(cosmic,header=TRUE,sep=' ')
+  }
   n <- length(ranks(object))
   for(k in seq_len(n)){
     w <- basis(object)[[k]]
     cosim <- cos_sim(X=w, Y=ref)
-#   perm <- clue::solve_LSAP(x=cosim, maximum=TRUE)
     perm <- apply(cosim,1,which.max)
     idx <- order(perm)
     basis(object)[[k]] <- basis(object)[[k]][,idx]

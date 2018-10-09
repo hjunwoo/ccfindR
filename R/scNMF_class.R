@@ -64,8 +64,8 @@
 #' @import methods
 setClass('scNMFSet',
          slots=c(ranks='vector',
-                 basis='list',
-                 coeff='list',
+                 basis='list', dbasis='list',
+                 coeff='list', dcoeff='list',
                  measure='data.frame'),
          contains='SingleCellExperiment')
 
@@ -109,7 +109,12 @@ scNMFSet <- function(count=NULL, ..., remove.zeros=TRUE){
 #' @export
 setMethod('show', signature='scNMFSet',
            definition=function(object){
-           callNextMethod()
+             cat('class:', class(object),'\n')
+             cat('dim:', dim(object),'\n')
+             cat('rownames: ')
+             print(head(rownames(object)))
+             cat('colnames: ')
+             print(head(colnames(object)))
           })
 
 #' Accessor for count matrix
@@ -197,6 +202,10 @@ setGeneric('basis', function(object) standardGeneric('basis'))
 #' @return List of basis matrices
 setMethod('basis', signature='scNMFSet', function(object) object@basis)
 
+#' @export
+setGeneric('dbasis', function(object) standardGeneric('dbasis'))
+setMethod('dbasis', signature='scNMFSet', function(object) object@dbasis)
+
 #' Coefficient matrices in an Object
 #' 
 #' Retrieve or set the coefficient matrices from factorization in an 
@@ -225,6 +234,10 @@ setGeneric('coeff', function(object) standardGeneric('coeff'))
 #' @param object Object containing coefficient matrix
 #' @return List of coefficient matrices
 setMethod('coeff', signature='scNMFSet', function(object) object@coeff)
+
+#' @export
+setGeneric('dcoeff', function(object) standardGeneric('dcoeff'))
+setMethod('dcoeff', signature='scNMFSet', function(object) object@dcoeff)
 
 #' Factorization measures in an Object
 #' 
@@ -270,15 +283,23 @@ setMethod('[', 'scNMFSet', function(x, i, j){
               x <- callNextMethod()
               if(length(basis(x)) > 0){
                 w <- basis(x)
-                  for(k in seq_len(length(w))) 
-                    w[[k]] <- w[[k]][i,]
+                dw <- dbasis(x)
+                for(k in seq_len(length(w))){ 
+                  w[[k]] <- w[[k]][i,]
+                  dw[[k]] <- dw[[k]][i,]
+                }
                 basis(x) <- w
+                dbasis(x) <- dw
               }
               if(length(coeff(x)) > 0){
                 h <- coeff(x)
-                  for(k in seq_len(length(h)))
-                    h[[k]] <- h[[k]][,j]
+                dh <- dcoeff(x)
+                for(k in seq_len(length(h))){
+                  h[[k]] <- h[[k]][,j]
+                  dh[[k]] <- dh[[k]][,j]
+                }
                 coeff(x) <- h
+                dcoeff(x) <- dh
               }
               return(x)
           })
@@ -294,10 +315,10 @@ setValidity('scNMFSet', function(object){
     if(valid) TRUE else msg
 })
 
-#' Gene annotation accessor
+#' Feature annotation accessor
 #' 
 #' @param x Object containing data
-#' @return DataFrame of row annotation
+#' @return DataFrame of feature annotation
 #' @examples
 #' x <- matrix(rpois(n=12,lambda=3),4,3)
 #' rownames(x) <- seq_len(4)
@@ -319,9 +340,9 @@ setMethod('rowData<-','scNMFSet',
           function(x, value){
             callNextMethod()})
 
-#' Cell annotation accessor
+#' Sample annotation accessor
 #' 
-#' @param x Object containing cell annotation
+#' @param x Object containing sample annotation
 #' @return Column annotation DataFrame 
 #' @examples
 #' library(S4Vectors)
@@ -422,8 +443,16 @@ setGeneric('basis<-', function(object,value) standardGeneric('basis<-'))
 setMethod('basis<-','scNMFSet',
        function(object, value){
          object@basis <- value
-         if(validObject(object)) return(object)
-})
+#        if(validObject(object)) return(object)
+         return(object)
+         })
+#' @export
+setGeneric('dbasis<-', function(object,value) standardGeneric('dbasis<-'))
+setMethod('dbasis<-','scNMFSet',
+          function(object, value){
+            object@dbasis <- value
+            return(object)
+          })
 
 #' Generics for coefficient matrix assignment
 #'
@@ -455,8 +484,16 @@ setGeneric('coeff<-', function(object,value) standardGeneric('coeff<-'))
 setMethod('coeff<-','scNMFSet',
        function(object, value){
          object@coeff<- value
-         if(validObject(object)) return(object)
+#        if(validObject(object)) return(object)
+         return(object)
 })
+#' @export
+setGeneric('dcoeff<-', function(object,value) standardGeneric('dcoeff<-'))
+setMethod('dcoeff<-','scNMFSet',
+          function(object, value){
+            object@dcoeff <- value
+            return(object)
+          })
 
 #' Generics for factorization measure assignment
 #'
@@ -506,7 +543,7 @@ setMethod('measure<-','scNMFSet',
 setMethod('plot',signature="scNMFSet",definition = 
             function(x){
     
-     bayes <- names(x@measure)[2] %in% c('evidence','E')   
+     bayes <- names(x@measure)[2] %in% c('lml','E','evidence')   
      dflag <- FALSE
      mx <- x@measure
      if(bayes) ylab <- c('log ML')
@@ -516,7 +553,7 @@ setMethod('plot',signature="scNMFSet",definition =
     
      if(bayes){
        graphics::plot(NULL,xlim=c(mx$rank[1],mx$rank[nrow(mx)]),
-                      ylim=c(1.1*min(mx[,2]),0.9*max(mx[,2])),xlab='Rank', 
+                      ylim=c(min(mx[,2]),max(mx[,2])),xlab='Rank', 
                       ylab=ylab, bty='n')
        if(names(mx)[3]=='Esd'){  # bootstrapped
          dx <- 0.2
