@@ -31,6 +31,7 @@ Rcpp::List vbnmf_update(const Eigen::MatrixXd &X, const Rcpp::List &wh,
     Eigen::MatrixXd lh = wh["lh"];
     Eigen::MatrixXd ew = wh["ew"];
     Eigen::MatrixXd eh = wh["eh"];
+    
     int r = lw.cols();
     double aw = hyper["aw"];
     double ah = hyper["ah"];
@@ -60,7 +61,9 @@ Rcpp::List vbnmf_update(const Eigen::MatrixXd &X, const Rcpp::List &wh,
     for(int i=0; i<n; i++)
       bew.row(i) = bew.row(i) + eh.rowwise().sum().transpose();
     ew = alw.array() / bew.array();
-
+    
+    Eigen::MatrixXd dw = alw.array() / bew.array() / bew.array();
+      
     Eigen::MatrixXd alh(r,m);
     alh = Eigen::MatrixXd::Constant(r,m,ah) + sh;
     Eigen::MatrixXd beh(r,m);
@@ -68,6 +71,8 @@ Rcpp::List vbnmf_update(const Eigen::MatrixXd &X, const Rcpp::List &wh,
     for(int j=0; j<m; j++)
       beh.col(j) = beh.col(j) + ew.colwise().sum().transpose();
     eh = alh.array() / beh.array();
+    
+    Eigen::MatrixXd dh = alh.array() / beh.array() / beh.array();
 
 //  std::cout << bew(0,0) << " " << bew(0,1) << "\n";
 //  std::cout << bew(1,0) << " " << bew(1,1) << "\n";
@@ -144,13 +149,15 @@ Rcpp::List vbnmf_update(const Eigen::MatrixXd &X, const Rcpp::List &wh,
     for(int k=0;k<r;k++) for(int j=0;j<m;j++)
       U += -(ah/bh)*eh(k,j) + lga + alh(k,j)*(1.0-log(beh(k,j)))+gsl_sf_lngamma(alh(k,j));
     U/=n*m;
-
+    
     Rcpp::List z = Rcpp::List::create(Rcpp::Named("w")=ew,
                            Rcpp::Named("h")=eh,
                            Rcpp::Named("lw")=lw,
                            Rcpp::Named("lh")=lh,
                            Rcpp::Named("ew")=ew,
                            Rcpp::Named("eh")=eh,
-                           Rcpp::Named("lkh")=U);
+                           Rcpp::Named("lkh")=U,
+                           Rcpp::Named("dw")=dw,
+                           Rcpp::Named("dh")=dh);
     return z;
 }
