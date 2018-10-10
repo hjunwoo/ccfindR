@@ -1,11 +1,10 @@
 Package: ccfindR
-<<<<<<< HEAD
 Version: 1.1.2
 Date: 2018-10-9
 Title: Cancer Clone Finder
 Authors@R: c(person('Jun','Woo',role=c('aut','cre'),email='jwoo@umn.edu'),
              person('Jinhua','Wang',role='aut',email='wangjh@umn.edu'))
-Depends: R (>= 3.5.1),
+Depends: R (>= 3.5.1)
 Imports: stats,
          S4Vectors,
          BiocGenerics,
@@ -24,6 +23,8 @@ Imports: stats,
          irlba,
          Rcpp,
          RcppEigen
+Suggests: knitr, rmarkdown, BiocStyle
+VignetteBuilder:: knitr
 LinkingTo: Rcpp, RcppEigen
 biocViews: Transcriptomics, 
            SingleCell, 
@@ -41,5 +42,3 @@ Description: A collection of tools for cancer genomic data clustering
 License: GPL (>= 2)
 NeedsCompilation: yes
 RoxygenNote: 6.0.1
-VignetteBuilder:: knitr
-Suggests: BiocStyle, knitr, rmarkdown
