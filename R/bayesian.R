@@ -259,7 +259,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                   hyper.update=hyper.update, 
                   hyper.update.n0=hyper.update.n0, 
                   ncores=ncores, hyper.update.dn=hyper.update.dn, Tol=Tol,
-                  unif.stop=unif.stop, nrun=nrun, seeds=seeds)
+                  unif.stop=unif.stop, nrun=nrun)
    if(ncores==1)
      vb <- lapply(seq_len(nrun), FUN=vb_iterate, bundle)
    else    # parallel
@@ -308,10 +308,6 @@ vb_iterate <- function(irun, bundle){
    nrow <- dim(bundle$mat)[1]
    ncol <- dim(bundle$mat)[2]
    nrank <- length(bundle$ranks)
-   if(!is.null(bundle$seeds))
-     set.seed(bundle$seeds[irun])
-   else if(bundle$ncores>1)   # randomize seed only if parallel
-     set.seed(stats::runif(1000000*irun))
    
    rdat <- rep(-Inf, nrank)
    wdat <- hdat <- dwdat <- dhdat <- hyperp <- list()
@@ -394,40 +390,4 @@ vb_iterate <- function(irun, bundle){
    vb <- list(rdat=rdat, wdat=wdat, hdat=hdat, hyperp=hyperp, nunif=nunif,
               dwdat=dwdat,dhdat=dhdat)
    return(vb)
-}
-
-#' Bootstrap sample count matrix
-#' @param object Main object whose count matrix is to be randomized
-#' @return Ojbect with the updated count matrix
-#' @export
-bootstrap <- function(object, remove.zeros=FALSE){
-  
-   if(class(object) %in% c('matrix','dgCMatrix'))
-     mat <- object
-   else
-     mat <- counts(object)
-   m <- nrow(mat)
-   n <- ncol(mat)
-   
-   row <- rownames(mat)
-   while(TRUE){
-     bat <- apply(mat, 2, function(x){
-       prob <- x/sum(x)
-       y <- sample(seq_len(m),size=sum(x),replace=TRUE, prob=prob)
-       z <- table(factor(y,levels=seq_len(m)))
-       as.vector(z)
-       })
-     if(sum(rowSums(bat>0)==0)==0) break   # avoid empty rows
-   }
-   rownames(bat) <- row
-   mat <- bat
-
-   if(class(object) %in% c('matrix','dgCMatrix')){
-#    if(remove.zeros) mat <- remove_zeros(mat,remove.zeros)
-     return(mat)
-   }
-   counts(object) <- mat
-#  object <- remove_zeros(object,remove.zeros)
-   
-   return(object)
 }

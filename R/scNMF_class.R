@@ -555,15 +555,6 @@ setMethod('plot',signature="scNMFSet",definition =
        graphics::plot(NULL,xlim=c(mx$rank[1],mx$rank[nrow(mx)]),
                       ylim=c(min(mx[,2]),max(mx[,2])),xlab='Rank', 
                       ylab=ylab, bty='n')
-       if(names(mx)[3]=='Esd'){  # bootstrapped
-         dx <- 0.2
-         graphics::segments(x0=mx$rank,x1=mx$rank, y0=mx$E-mx$Esd,
-                            y1=mx$E+mx$Esd, col='red',xpd=NA)
-         graphics::segments(x0=mx$rank-dx,x1=mx$rank+dx, y0=mx$E-mx$Esd,
-                  y1=mx$E-mx$Esd, col='red',xpd=NA)
-         graphics::segments(x0=mx$rank-dx,x1=mx$rank+dx, y0=mx$E+mx$Esd,
-                  y1=mx$E+mx$Esd, col='red',xpd=NA)
-       }
        graphics::points(x=mx$rank, y=mx[,2], type='b',xlab='Rank', 
                       ylab=ylab, bty='n',pch=21,bg='white')
      }
@@ -604,7 +595,7 @@ setMethod('plot',signature="scNMFSet",definition =
 #' @export
 remove_zeros <- function(object, remove.zeros=TRUE, fudge=NULL){
 
-  if(class(object)=='matrix')
+  if(is(object,'matrix'))
     count <- object
   else
     count <- counts(object)
@@ -624,7 +615,7 @@ remove_zeros <- function(object, remove.zeros=TRUE, fudge=NULL){
     }
     else{
       if(is.null(fudge)) fudge <- .Machine$double.eps
-      if(class(object)=='matrix')
+      if(is(object,'matrix'))
         object[gene0,] <- object[,cell0] <- fudge
       else
         counts(object)[gene0,] <- counts(object)[,cell0] <- fudge

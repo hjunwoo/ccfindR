@@ -420,7 +420,36 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' Plot heatmap of basis matrix
 #' 
 #' Generate heatmap of features derived from factorization of count data.
-#' #' @examples  
+#' 
+#' This function uses \code{image()} and is more flexible than 
+#' \code{gene_map}.
+#' @param object Object of class \code{scNMFSet}.
+#' @param basis.matrix Basis matrix can be supplied instead of \code{object}.
+#' @param rank Rank value for which the gene map is to be displayed. 
+#'   The object must contain the corresponding slot (one element of 
+#'        \code{basis(object)[[k]]} for which \code{ranks(object)[[k]]==rank}.
+#' @param markers Vector of gene names containing markers to be included 
+#'         in addition to the metagenes. All entries of \code{rowData(object)}
+#'         matching them will be added to the metagene list.
+#' @param subtract.mean Process each rows of basis matrix \code{W} by 
+#'        standardization using the mean of elements within the row.
+#' @param log If \code{TRUE}, \code{subtract.mean} uses geometric mean
+#'        and division. Otherwise, use arithmetic mean and subtraction.
+#' @param max.per.cluster Maximum number of metagenes per cluster.
+#' @param cscale Colors for heatmap
+#' @param feature.names Names to be used in the plot for features.
+#' @param mar Margins for \code{graphics::par}.
+#' @param ... Other arguments to be passed to \code{\link{image}}, and \code{\link{plot}}.
+#'            
+#' @details If \code{object} contains multiple ranks, only the requested 
+#'   rank's basis matrix W will be displayed. As in \code{gene_map}, the features
+#'   displayed in rows are selected by "max" scheme
+#' @return \code{NULL}
+#' @examples  
+#' set.seed(1)
+#' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
+#' rownames(x) <- seq_len(10)
+#' @examples  
 #' set.seed(1)
 #' x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
 #' rownames(x) <- seq_len(10)
@@ -432,9 +461,7 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' @export
 feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL, 
                         subtract.mean=TRUE, log=TRUE, scheme='max',
-                        sweep=TRUE,
-                        max.per.cluster = 10, Colv=NA,
-                        feature.names=NULL, perm=NULL,
+                        max.per.cluster = 10, feature.names=NULL, perm=NULL,
                         main='Feature map', cscale=NULL, 
                         cex.cluster=1, cex.feature=0.5, mar=NULL, ...){
   
@@ -485,15 +512,12 @@ feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL,
   nc <- ncol(w1)
   nr <- nrow(w1)
   
-  if(sweep){
-    x <- sweep(w1, 1, rowMeans(w1), check.margin=TRUE)
-    sx <- apply(x,1,sd)
-    x <- sweep(x, 1, sx, '/', check.margin=FALSE)
-  } else x <- w1
+  x <- sweep(w1, 1, rowMeans(w1), check.margin=TRUE)
+  sx <- apply(x,1,sd)
+  x <- sweep(x, 1, sx, '/', check.margin=FALSE)
   
   if(is.null(mar)) mar <- c(5.1,4.1,4.1,4)
   par(mar=mar)
-  if(!sweep) x <- log(x)
   image(seq_len(nc), seq_len(nr), t(x)[,seq(nr,1)], xlim=0.5+c(0,nc),
         ylim=0.5+c(0,nr), axes=FALSE, xlab='',ylab='',col=cscale)
   graphics::axis(1,seq_len(nc), labels=seq_len(nc), las=1, line=-1.0,tick=0, 
@@ -575,8 +599,7 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' @export
 meta_genes <- function(object, rank, basis.matrix=NULL, dbasis=NULL,
                        max.per.cluster=Inf,gene_names=NULL,
-                       subtract.mean=TRUE,log=TRUE,
-                       scheme='max', frac.var=1){
+                       subtract.mean=TRUE,log=TRUE,scheme='max'){
   
   if(is.null(basis.matrix)){
     idx <- ranks(object)==rank
@@ -607,8 +630,7 @@ meta_genes <- function(object, rank, basis.matrix=NULL, dbasis=NULL,
         flag <- k==ix[1] 
         if(!flag) next
         xp <- log(mean(exp(x[ix[-1]])))
-        if(1-xp/x[k] > cv[i,k]*frac.var)
-          itmp <- c(itmp,i)
+        itmp <- c(itmp,i)
       }
     }
     else if(scheme=='sort')

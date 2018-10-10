@@ -18,10 +18,10 @@ write_meta <- function(meta,file){
 #' @export
 optimal_rank <- function(object, df=10, type=1, max.slope=1e-4){
   
-  if(class(object)=='scNMFSet')
-    me <- measure(object)[,1:2]
-  else if(class(object)=='data.frame')
-    me <- object[,1:2]
+  if(is(object,'scNMFSet'))
+    me <- measure(object)[,seq_len(2)]
+  else if(is(object,'data.frame'))
+    me <- object[,seq_len(2)]
   else stop('Inappropriate class of object')
   
   df <- min(df,nrow(me))
