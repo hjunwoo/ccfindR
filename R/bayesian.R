@@ -232,8 +232,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                          hyper.update.n0=10, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
                          ncores=1, useC=TRUE,
-                         unif.stop=TRUE,
-                         seeds=NULL){
+                         unif.stop=TRUE){
   
    if(is.null(fudge)) fudge <- .Machine$double.eps
    mat <- counts(object) # S4 class scNMFSet
@@ -248,9 +247,6 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    
    ranks <- ranks[ranks <= ncol(mat)] # rank <= no. of columns
    nrank <- length(ranks)
-   
-   if(!is.null(seeds)) if(length(seeds)<nrun)
-     stop(paste0(nrun,' random number seeds required'))
    
    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
                   gamma.b=gamma.b, initializer=initializer, 
