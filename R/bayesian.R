@@ -311,7 +311,7 @@ vb_iterate <- function(irun, bundle){
    if(!is.null(bundle$seeds))
      set.seed(bundle$seeds[irun])
    else if(bundle$ncores>1)   # randomize seed only if parallel
-     set.seed(runif(1000000*irun))
+     set.seed(stats::runif(1000000*irun))
    
    rdat <- rep(-Inf, nrank)
    wdat <- hdat <- dwdat <- dhdat <- hyperp <- list()

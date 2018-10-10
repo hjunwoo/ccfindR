@@ -11,7 +11,7 @@ write_meta <- function(meta,file){
     dat[seq_len(length(meta[[k]])),k] <- meta[[k]]
   rownames(dat) <- seq_len(nmax)
   colnames(dat) <- seq_len(rank)
-  write.csv(dat,file=file)
+  utils::write.csv(dat,file=file)
 }
 
 #' Determine optimal rank
@@ -25,7 +25,7 @@ optimal_rank <- function(object, df=10, type=1, max.slope=1e-4){
   else stop('Inappropriate class of object')
   
   df <- min(df,nrow(me))
-  fs <- smooth.spline(x=me[,1],y=me[,2],df=df)
+  fs <- stats::smooth.spline(x=me[,1],y=me[,2],df=df)
   if(type==1) rst <- fs$x[which.max(fs$y)]
   else{
     sl <- slope(fs$y,fs$x)

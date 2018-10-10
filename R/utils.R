@@ -496,17 +496,17 @@ feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL,
   if(!sweep) x <- log(x)
   image(seq_len(nc), seq_len(nr), t(x)[,seq(nr,1)], xlim=0.5+c(0,nc),
         ylim=0.5+c(0,nr), axes=FALSE, xlab='',ylab='',col=cscale)
-  axis(1,seq_len(nc), labels=seq_len(nc), las=1, line=-1.0,tick=0, 
+  graphics::axis(1,seq_len(nc), labels=seq_len(nc), las=1, line=-1.0,tick=0, 
        cex.axis=cex.cluster)
   col <- rep('black',nr)
-  text(x=rank+0.7,y=seq(nr,1), labels=rownames(w1), col=col,xpd=NA, 
+  graphics::text(x=rank+0.7,y=seq(nr,1), labels=rownames(w1), col=col,xpd=NA, 
        cex=cex.feature, adj=0)
   y <- nrow(w1) + 0.5
   segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
   for(k in seq_len(rank)){
-    text(x=-0.1, y=y-1, label=k, cex=cex.cluster, xpd=NA)
+    graphics::text(x=-0.1, y=y-1, label=k, cex=cex.cluster, xpd=NA)
     y <- y-step[k]
-    segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
+    graphics::segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
   }
   title(adj=0.5,main=main)
 }
@@ -887,92 +887,4 @@ cluster_id <- function(object, rank=2){
   cid <- apply(h, 2, which.max)
   names(cid) <- colnames(object)
   cid
-}
-
-#' Computes averages over bootstrapped factors
-#' @param object List of \code{scNMF} objects containing bootstrapped
-#'        sample factorizations
-#' @param reorder Reorder clusters of each resampled factor matrices
-#'        to have maximum overlap with reference
-#' @param ref Reference basis matrix for reordering. Number of rows 
-#'        must be equal to or larger than those in \code{object}. If
-#'        the numbers of rows differ, row names are used for matching.
-#' @return Object containing mean (and sd for marginal likelihood) factorization
-#'        measure, basis/coefficient matrices averaged over resampling data.
-#' @examples
-#' set.seed(1)
-#' x <- simulate_whx(nrow=50, ncol=100, rank=5)
-#' s <- scNMFset(x$x)
-#' slist <- vb_factorize(s, ranks=seq(2,8), nboot=10)
-#' smean <- boot_ave(slist)
-#' plot(smean) 
-#' @export
-boot_ave <- function(object, reorder=TRUE, ref=NULL){
-  
-  if(class(object)!='list') stop('Object in boot_ave is not a list')
-  nb <- length(object)
-  mobj <- object[[1]]
-  nrank <- length(ranks(mobj))
-  measure(mobj) <- measure(mobj)[seq_len(nrank),]
-  me <- measure(mobj)$evidence
-  
-  if(is.numeric(ref))
-    refo <- object[[ref]]
-  else refo <- ref
-  for(i in seq_len(nb)){
-    if(is.numeric(ref)) if(i==ref) next
-    measure(mobj) <- measure(mobj) + measure(object[[i]])[seq_len(nrank),]
-    me <- cbind(me, measure(object[[i]])$evidence[seq_len(nrank)])
-    for(k in seq_len(nrank)){
-      if(reorder){
-        if(is.null(refo)) 
-          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(object[[1]])[[k]])
-        else
-          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(refo)[[k]])
-        perm <- clue::solve_LSAP(x=cosim, maximum=TRUE)
-        perm <- match(seq_len(ranks(object[[i]])[k]), perm)
-                # permutation with max.overlap to ref
-        basis(object[[i]])[[k]] <- basis(object[[i]])[[k]][,perm]
-        coeff(object[[i]])[[k]] <- coeff(object[[i]])[[k]][perm,]
-      }
-      basis(mobj)[[k]] <- basis(mobj)[[k]] + basis(object[[i]])[[k]]
-      coeff(mobj)[[k]] <- coeff(mobj)[[k]] + coeff(object[[i]])[[k]]
-    }
-  }
-  sd <- apply(me, 1, sd)
-  me <- rowMeans(me)
-  measure(mobj) <- measure(mobj)/nb
-  for(k in seq_len(nrank)){
-    basis(mobj)[[k]] <- basis(mobj)[[k]]/nb
-    coeff(mobj)[[k]] <- coeff(mobj)[[k]]/nb
-  }
-  me2 <- data.frame(rank=ranks(object[[1]]),E=me, Esd=sd,
-                    aw=measure(mobj)$aw,bw=measure(mobj)$bw,
-                    ah=measure(mobj)$ah,bh=measure(mobj)$bh,
-                    nunif=measure(mobj)$nunif)
-  measure(mobj) <- me2
-  
-  return(mobj)
-}
-
-#' Reorder clusters with respect to reference
-#' @export
-#' 
-reorder_clusters <- function(object, ref=NULL){
-  
-  if(is.null(ref)){
-    cosmic <- system.file('extdata','PCAWG_SBS_v3.txt',
-                        package='ccfindR')
-    ref <- read.table(cosmic,header=TRUE,sep=' ')
-  }
-  n <- length(ranks(object))
-  for(k in seq_len(n)){
-    w <- basis(object)[[k]]
-    cosim <- cos_sim(X=w, Y=ref)
-    perm <- apply(cosim,1,which.max)
-    idx <- order(perm)
-    basis(object)[[k]] <- basis(object)[[k]][,idx]
-    coeff(object)[[k]] <- coeff(object)[[k]][idx,]
-  }
-  return(object)
 }
