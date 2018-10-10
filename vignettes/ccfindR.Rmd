@@ -1,14 +1,22 @@
 ---
-title: "ccfindR: single-cell RNA-seq analysis using non-negative matrix factorization"
-author: ""
+title: "ccfindR: single-cell RNA-seq analysis using Bayesian non-negative matrix factorization"
+author: 
+- name: Jun Woo
+  affiliation: Institute for Health Informatics, University of Minnesota
+- name: Constantin Aliferis
+  affiliation: Institute for Health Informatics, University of Minnesota
+- name: Jinhua Wang
+  affiliation: Institute for Health Informatics, University of Minnesota
+package: ccfindR
 date: "`r Sys.Date()`"
-output: 
-  pdf_document:
+output:
+  BiocStyle::html_document:
     fig_caption: true
+    toc_float: true
 bibliography: scRNA.bib
 csl: nature.csl
 vignette: >
-  %\VignetteIndexEntry{ccfindR: single-cell RNA-seq clustering with non-negative matrix factorization}
+  %\VignetteIndexEntry{ccfindR: single-cell RNA-seq analysis using Bayesian non-negative matrix factorization}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -38,40 +46,47 @@ likely value. A production run for the chosen rank then leads to
 factor matrices, allowing the user to identify and visualize genes 
 representative of clusters and assign cells into clusters.
 
-## Algorithm
+# Algorithm
 
 The NMF approach offers a means to identify cell subtypes and classify 
 individual cells into these clusters based on clustering using 
 expression counts. In contrast to alternatives such as principal 
 component analyses [@hastie_etal], NMF leverages the non-negative nature 
-of count data and factorizes the data matrix $\sf X$ into two matrices 
+of count data and factorizes the data matrix $\sf X$ into two 
+factor matrices 
 $\sf W$ and $\sf H$ [@lee_seung]:
 
-$$\sf{X} \sim {\sf W}{\sf H}.$$
+\begin{equation}
+\sf{X} \sim {\sf W}{\sf H}.
+\end{equation}
 If $\sf X$ is a $p\times n$ matrix ($p$ genes and $n$ cells), 
 the basis matrix $\sf W$ is $p \times r$ and coefficient matrix 
 $\sf H$ is $r \times n$ in dimension, respectively, where the rank $r$ is 
 a relatively small integer.
 A statistical inference-based interpretation of NMF is to view $X_{ij}$ as 
 a realization of a Poisson distribution with the mean for each matrix
-elements given by $({\sf WH})_{ij}\equiv \Lambda_{ij}$, or
-$$ \Pr(x_{ij})=\frac{e^{-\Lambda_{ij}}{\Lambda_{ij}}^{x_{ij}}}
-{\Gamma(1+x_{ij})}.$$
+element given by $({\sf WH})_{ij}\equiv \Lambda_{ij}$, or
+\begin{equation}
+\Pr(x_{ij})=\frac{e^{-\Lambda_{ij}}{\Lambda_{ij}}^{x_{ij}}}
+{\Gamma(1+x_{ij})}.
+\end{equation}
 The maximum likelihood inference of the latter is then achieved by 
 maximizing
-$$ L = \sum_{ij} \left(X_{ij} \ln \frac{\Lambda_{ij}}{X_{ij}}-
-  \Lambda_{ij}+X_{ij}\right).$$
+\begin{equation}
+L = \sum_{ij} \left(X_{ij} \ln \frac{\Lambda_{ij}}{X_{ij}}-
+  \Lambda_{ij}+X_{ij}\right).
+\end{equation}
 The Kullback-Leibler measure of the distance between $\sf X$ and 
 $\sf \Lambda$,
 which is minimized, is equal to $-L$.
 Lee and Seung's update rule [@lee_seung] solves this optimization task 
-iteratively. In addition to this classical iterative update algorithm to 
-find basis and coefficient factors of the count matrix, the `ccfindR`
-package implements variational Bayesian inference developed by
-Cemgil [@cemgil].
+iteratively. 
 
-Key features of `ccfindR` distinguishing
-it from other existing implementations -- `NMF` for generic data 
+While also including this classical iterative update 
+algorithm to find basis and coefficient factors of the count matrix, the
+main workhorse in `ccfindR` is the variational Bayesian inference 
+algorithm proposed by Cemgil [@cemgil]. Thus the key distinguishing 
+features of `ccfindR` [@woo_etal] compared to other existing implementations -- `NMF` for generic data 
 [@gaujoux_seoighe] and `NMFEM` for single-cell analysis [@zhu_etal] --
 are
 
@@ -80,14 +95,14 @@ to determine the most likely value of rank $r$.
 * Procedure to derive hierarchical relationships among clusters
 identified under different ranks.
 
-A traditional way (in maximum likelihood inference) 
+In particular, a traditional way (in maximum likelihood inference) 
 to determine the rank is to evaluate the 
 factorization quality measures (and optionally compare with those from 
-randomized data).
-The Bayesian formulation of NMF algorithm [@cemgil] 
+randomized data). The Bayesian formulation of NMF algorithm instead 
 incorporates priors for factored matrix elements $\sf W$ and $\sf H$ 
 modeled by gamma distributions. Inference can be combined with hyperparameter
-update to optimize the evidence (conditional probability of data under
+update to optimize the marginal likelihood (ML; 
+conditional probability of data under
 hyperparameters and rank), which provides a statistically well-controlled
 means to determine the optimal rank describing data.
 
@@ -99,25 +114,25 @@ tree connecting different clusters at neighboring rank
 values are constructed. This tree gives an overview of different types of
 cells present in the system viewed at varying resolution.
 
-## Workflow
+# Workflow
 
 We illustrate a typical workflow with a single-cell count data set
 generated from peripheral blood mononuclear cell (PBMC) 
 data [https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/].
-The particular data set used below was created by sampling from 5 
+The particular data set used below was created by sampling from five 
 purified immune cell subsets.
 
-## 1. Installation
-To install the package, download the source tar-ball and 
-```
-$ R CMD INSTALL ccfindR_0.99-0.tar.gz
+## Installation
+To install the package, do the following: 
+```{r,eval=FALSE}
+BiocManager::install('ccfindR')
 ```
 After installation, load the package by
 ```{R}
 library(ccfindR)
 ```
 
-## 2. Data input
+## Data input
 
 The input data can be a simple matrix:
 ```{r, echo=T}
@@ -154,22 +169,24 @@ main slots. For instance, row and column names can be stored by
 ```{r}
 # set row and column names
 suppressMessages(library(S4Vectors))
-genes <- as(ABC, 'DataFrame')
+genes <- DataFrame(ABC)
 rownames(genes) <- ABC
-cells <- as(abc, 'DataFrame')
+cells <- DataFrame(abc)
 rownames(cells) <- abc
 sc <- scNMFSet(count = mat, rowData = genes, colData = cells)
 sc
 ```
 
 Alternatively, sparse matrix format (of class `dgCMatrix`) can be used. 
-One may read a `MatrixMarket` format file directly:
+A `MatrixMarket` format file can be read directly:
 ```{r}
 # read sparse matrix
 dir <- system.file('extdata', package = 'ccfindR')
 mat <- Matrix::readMM(paste0(dir,'/matrix.mtx'))
-sc <- scNMFSet(count = mat, rowData = as(1:nrow(mat), 'DataFrame'),
-               colData = as(1:ncol(mat), 'DataFrame'))
+rownames(mat) <- 1:nrow(mat)
+colnames(mat) <- 1:ncol(mat)
+sc <- scNMFSet(count = mat, rowData = DataFrame(1:nrow(mat)),
+               colData = DataFrame(1:ncol(mat)))
 sc
 ```
 The number of rows in `assays$counts` and `rowData`, the number of columns 
@@ -186,13 +203,13 @@ sc
 ```
 
 The parameter `dir` is the directory containing the files. 
-Filenames above are defaults and can be omitted.
+Filenames above are the defaults and can be omitted.
 The function returns an `scNMFSet` object. 
 By default, any row or column entirely consisting of zeros in `counts` and the
 corresponding elements in `rowData` and `colData` slots will be removed. 
 This feature can be turned off by `remove.zeros = FALSE`.
 
-## 3. Quality control
+## Quality control
 
 For quality control, cells and genes can be filtered manually using normal
 subsetting syntax of `R`: the slots in the object `sc` are accessed and 
@@ -209,13 +226,13 @@ sc2 <- remove_zeros(sc2)   # remove empty rows/columns
 sc2
 ```
 
-We provide two streamlined functions each for cell and gene filtering as 
-shown below:
-```{r, cache=T, fig.width=4, fig.height=4,fig.cap='Quality control filtering of cells. Histogram of UMI counts is shown. Cells can be selected (red) by setting lower and upper thresholds of the UMI count.'}
+We provide two streamlined functions each for cell and gene filtering,
+which are illustrated below:
+```{r cells, cache=T, fig.small=TRUE,fig.cap="Quality control filtering of cells. Histogram of UMI counts is shown. Cells can be selected (red) by setting lower and upper thresholds of the UMI count."}
 sc <- filter_cells(sc, umi.min = 10^2.6, umi.max = 10^3.4)
 ```
 
-```{r, cache=T, fig.width=4, fig.height=4, fig.cap='Selection of genes for clustering. The scatter plot shows distributions of expression variance to mean ratio (VMR) and the number of cells expressed. Minimum VMR and a range of cell number can be set to select genes (red). Symbols in orange are marker genes provided as input, selected irrespective of expression variance.'}
+```{r genes, cache=T, fig.small=TRUE, fig.cap="Selection of genes for clustering. The scatter plot shows distributions of expression variance to mean ratio (VMR) and the number of cells expressed. Minimum VMR and a range of cell number can be set to select genes (red). Symbols in orange are marker genes provided as input, selected irrespective of expression variance."}
 markers <- c('CD4','CD8A','CD8B','CD19','CD3G','CD3D',
              'CD3Z','CD14')
 sc0 <- filter_genes(sc, markers = markers, vmr.min = 1.5, 
@@ -223,11 +240,13 @@ sc0 <- filter_genes(sc, markers = markers, vmr.min = 1.5,
 ```
 
 The function `filter_cells()` plots histogram of UMI counts for all cells 
-when called without threshold parameters (Fig. 1). This plot can be used 
+when called without threshold parameters (Fig. \@ref(fig:cells)). 
+This plot can be used 
 to set desirable thresholds, `umi.min` and `umi.max`. Cells with UMI counts 
 outside will be filtered out. The function `filter_genes()` displays 
 scatter plot of the total number of cells with nonzero count and VMR 
-(variance-to-mean ratio) for each gene (Fig. 2). In both plots, selected 
+(variance-to-mean ratio) for each gene (Fig. \@ref(fig:genes)). 
+In both plots, selected 
 cells and genes are shown in red. Note that the above example has thresholds 
 that are too stringent, which is intended to speed up the subsequent 
 illustrative runs.
@@ -241,8 +260,8 @@ maximum; some have one or more distinct peaks at nonzero count values.
 These may signify the existence of groups of cells in which the genes 
 are expressed in distinguishable fashion. The selection of genes by `filter_genes()` 
 will be set as the union of threshold-based group and those with such 
-nonzero-count modes by setting `rescue.genes = TRUE` (default):
-```{r, cache=T, echo=T, fig.width=4, fig.height=4, fig.cap='Additional selection of genes with modes at nonzero counts. Symbols in blue represent genes rescued.'}
+nonzero-count modes by setting `rescue.genes = TRUE`:
+```{r rescue, cache=T, echo=T, fig.small=TRUE, fig.cap='Additional selection of genes with modes at nonzero counts. Symbols in blue represent genes rescued.'}
 sc_rescue <- filter_genes(sc, markers = markers, vmr.min = 1.5, min.cells.expressed = 50,
                           rescue.genes = TRUE, progress.bar = FALSE)
 ```
@@ -257,7 +276,7 @@ rownames(sc_rescue) <- rowData(sc_rescue)[,2]
 sc <- sc_rescue
 ```
 
-## 4. Rank determination
+## Rank determination
 
 The main function for maximum likelihood NMF on a count matrix is 
 `factorize()`. It performs a series of iterative updates to matrices 
@@ -304,8 +323,8 @@ initial guess, inferences need to be repeated for many different initializations
 sc <- factorize(sc, ranks = 3, nrun = 5, verbose = 2)
 ```
 
-After each run, the residual and dispersion are printed, and the global 
-minimum of residual as well as the corresponding matrices $\sf W$ and 
+After each run, the likelihood and dispersion are printed, and the global 
+maximum of likelihood as well as the corresponding matrices $\sf W$ and 
 $\sf H$ are stored. The dispersion $\rho$ is a scalar measure of how 
 close the consistency matrix $\sf{\bar C}\equiv {\rm Mean}({\sf C})$ 
 elements, where ${\sf C}$ is the 
@@ -336,26 +355,25 @@ After factorization, the `measure` slot has been filled:
 measure(sc)
 ```
 
-These measures can be plotted (Fig. 4):
-```{R, fig.width=6.5, fig.height=3, fig.cap='Factorization quality measures as functions of the rank. Dispersion measures the degree of bimodality in consistency matrix. Cophenetic correlation measures the degree of agreement between consistency matrix and hierarchical clustering.'}
+These measures can be plotted (Fig. \@ref(fig:measure):
+```{R measure, fig.large=TRUE, fig.cap='Factorization quality measures as functions of the rank. Dispersion measures the degree of bimodality in consistency matrix. Cophenetic correlation measures the degree of agreement between consistency matrix and hierarchical clustering.'}
 plot(sc)
 ```
 
 
-## 5. Bayesian NMF
+## Bayesian NMF
 The maximum likelihood-based inference must rely on quality measures to 
 choose optimal rank. Bayesian NMF allows for the statistical comparison 
 of different models, 
 namely those with different ranks. The quantity compared is the log
-probability ("evidence") of data conditional to models (defined by rank 
-and hyperparameters).
+probability (ML or "evidence") of data conditional to models (defined by rank and hyperparameters).
 The main function for Bayesian factorization is `vb_factorize()`:
 ```{r, cache=T}
 sb <- sc_rescue
 set.seed(2)
 sb <- vb_factorize(sb, ranks =3, verbose = 3, Tol = 2e-4, hyper.update.n0 = 5)
 ```
-The iteration maximizes (log) evidence (per matrix elements)
+The iteration maximizes log ML (per matrix elements)
 and terminates when its fractional change becomes smaller than `Tol`. 
 The option `criterion = connectivity` can also be used.
 By default, hyperparameters of priors are also updated after 
@@ -367,19 +385,27 @@ sb <- vb_factorize(sb, ranks = seq(2,7), nrun = 5, verbose = 1, Tol = 1e-4, prog
 
 With `nrun` larger than 1, multiple inferences will be performed for 
 each rank with different initial conditions and the solution with the 
-highest evidence will be chosen. The object after a `vb_factorize` run 
+highest ML will be chosen. The object after a `vb_factorize` run 
 will have its `measure` slot filled:
 ```{r}
 measure(sb)
 ```
 
-Plotting the object displays the log evidence as a function of rank
-(Fig. 5):
-```{r, fig.width=4, fig.height=4, fig.cap='Dependence of log evidence with rank.'}
+For smaller sample sizes under larger rank values, columns of basis
+matrices may turn out to be uniform, which signifies that the 
+corresponding cluster is redundant. By default (`unif.stop=TRUE`), 
+if such a uniform
+column is found in the basis matrix, the rank scan will terminate with
+a warning. The last column of `measure` named as `nunif` counts the 
+number of such uniform columns found if run under `unif.stop=FALSE`.
+
+Plotting the object displays the log ML 
+as a function of rank (Fig. \@ref(fig:lml)):
+```{r lml, fig.small=TRUE, fig.cap='Dependence of log ML with rank.'}
 plot(sb)
 ```
 
-## 6. Visualization
+## Visualization
 The rank scan above using Bayesian inference correctly identifies 
 $r=5$ as the optimal rank. The fit results for each rank--from 
 either maximum likelihood or Bayesian inference--are stored 
@@ -390,10 +416,11 @@ ranks(sb)
 
 head(basis(sb)[ranks(sb)==5][[1]]) # basis matrix W for rank 5
 ```
-Heatmaps of $\sf W$ and $\sf H$ matrices are displayed by `gene_map()` and
-`cell_map()`, respectively (Figs. 6-7):
-```{r, cache=T, fig.width = 4, fig.height=6, fig.cap='Heatmap of basis matrix elements. Marker genes selected in rows, other than those provided as input, are based on the degree to which each features strongly in a particular cluster only and not in the rest. Columns represent the clusters.'}
-gene_map(sb, markers = markers, rank = 5, max.per.cluster = 4, gene.name = rowData(sb)[,2],
+Heatmaps of $\sf W$ and $\sf H$ matrices are displayed by `feature_map()`
+and
+`cell_map()`, respectively (Figs. \@ref(fig:sb)-\@ref(fig:sc)):
+```{r sb, cache=T, fig.small=TRUE, fig.cap='Heatmap of basis matrix elements. Marker genes selected in rows, other than those provided as input, are based on the degree to which each features strongly in a particular cluster only and not in the rest. Columns represent the clusters.'}
+feature_map(sb, markers = markers, rank = 5, max.per.cluster = 4, gene.name = rowData(sb)[,2],
          cexRow = 0.7)
 ```
 
@@ -406,12 +433,12 @@ list, those for which the magnitude is the actual maximum over all clusters
 are chosen. Based on the marker-metagene map in Fig. 6, we rename the 
 clusters 1-5 as follows:
 ```{r}
-cell_type <- c('CD8+_T','NK','Monocytes','B_cell','CD4+_T')
+cell_type <- c('B_cell','CD8+_T','CD4+_T','Monocytes','NK')
 colnames(basis(sb)[ranks(sb) == 5][[1]]) <- cell_type
 rownames(coeff(sb)[ranks(sb) == 5][[1]]) <- cell_type
 ```
 
-```{r, fig.width = 4, fig.height=4, fig.cap = 'Heatmap of cluster coefficient matrix elements. Rows indicate clusters and columns the cells.'}
+```{r sc, fig.small=TRUE, fig.cap = 'Heatmap of cluster coefficient matrix elements. Rows indicate clusters and columns the cells.'}
 cell_map(sb, rank = 5)
 ```
 
@@ -420,23 +447,22 @@ cells into clusters, and inter/intra-cluster separations are visualized
 using tSNE algorithm [@van_der_maaten_hinton]. It uses the `Rtsne()` 
 function of the `Rtsne` package. A barplot of cluster cell counts are 
 also displayed
-(Fig. 8):
-```{r, fig.width = 6.5, fig.height = 4, fig.cap='tSNE-based visualization of coefficient matrix elements of cells with colors indicating predicted cluster assignment. The bar plot shows the cell counts of each cluster.'}
+(\@(tsne)):
+```{r tsne, fig.cap='tSNE-based visualization of clustering. Coefficient matrix elements of cells were used as input with colors indicating predicted cluster assignment. The bar plot shows the cell counts of each cluster.'}
 visualize_clusters(sb, rank = 5, cex = 0.7)
 ```
 
 It is useful to extract hierarchical relationships among the clusters 
 identified. This feature requires a series of inference outcomes for an 
 uninterrupted range of rank values, e.g., from 2 to 7:
-```{r, fig.width = 4, fig.height = 4, fig.cap = 'Hierarchical tree of clusters derived from varying ranks. The rank increases from 2 to 5 horizontally and nodes are labeled by cluster IDs which bifurcated in each rank.'}
+```{r tree, fig.small=TRUE, fig.cap = "Hierarchical tree of clusters derived from varying ranks. The rank increases from 2 to 5 horizontally and nodes are labeled by cluster IDs which bifurcated in each rank."}
 tree <- build_tree(sb, rmax = 5)
 tree <- rename_tips(tree, rank = 5, tip.labels = cell_type)
 plot_tree(tree, cex = 0.8, show.node.label = TRUE)
 ```
 
 The `build_tree` function returns a list containing the tree. The second 
-command above renames the label of terminal nodes by our cell type label. In 
-Fig. 9, the relative distance between clusters can be seen to be consistent 
-with the tSNE plot in Fig. 8.
+command above renames the label of terminal nodes by our cell type label. 
+In Fig. \@ref(fig:tree), the relative distance between clusters can be seen to be consistent with the tSNE plot in Fig. \@ref(fig:tsne).
 
 # References

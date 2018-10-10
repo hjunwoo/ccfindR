@@ -232,8 +232,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                          hyper.update.n0=10, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
                          ncores=1, useC=TRUE,
-                         normalize.signature=FALSE,
-                         kmer.size=3, unif.stop=TRUE,
+                         unif.stop=TRUE,
                          seeds=NULL){
   
    if(is.null(fudge)) fudge <- .Machine$double.eps
@@ -291,16 +290,6 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
      nunif <- c(nunif, vb[[imax]]$nunif[k])
      
      rownames(basis[[k]]) <- rownames(dbasis[[k]]) <- rownames(mat)
-     if(normalize.signature){
-       mut <- mut_list(kmer.size)
-       id <- intersect(mut, rownames(mat))
-       if(length(id)==0) stop('Signature normalization failed')
-       b <- colSums(basis[[k]][id,])
-       basis[[k]] <- t(t(basis[[k]])/b)
-       dbasis[[k]] <- t(t(dbasis[[k]])/b)
-       coeff[[k]] <- b*coeff[[k]]
-       dcoeff[[k]] <- b*dcoeff[[k]]
-     }
      colnames(coeff[[k]]) <- colnames(dcoeff[[k]]) <- colnames(mat)
    }
    

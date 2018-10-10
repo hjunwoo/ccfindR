@@ -407,7 +407,7 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
   if(!is.null(gene.names)) rownames(w) <- gene.names
   if(dim(w)[1] <= max.per.cluster) select <- rownames(w)
   else select <- gene_select(w, markers, max.per.cluster= max.per.cluster,
-                             scheme=scheme,ntop=ntop)
+                             scheme=scheme)
   w <- w[select,]
   if(is.null(col)) ccol <- grDevices::rainbow(n = dim(w)[2])
   else ccol <- col
@@ -621,7 +621,7 @@ meta_genes <- function(object, rank, basis.matrix=NULL, dbasis=NULL,
 }
 
 gene_select <- function(w, markers = NULL, max.per.cluster = 10,
-                        scheme='max', ntop=1){
+                        scheme='max'){
   
   rank <- dim(w)[2]
   select <- c()
@@ -632,9 +632,7 @@ gene_select <- function(w, markers = NULL, max.per.cluster = 10,
       w <- w[!rownames(w) %in% markers, ]
     }
     v <- w[order(w[,k],decreasing=TRUE),]
-    if(ntop==1) flag <- apply(v,1,function(x){x[k]==max(x)})
-    else flag <- apply(v,1,function(x){
-      k %in% order(x,decreasing=TRUE)[seq_len(ntop)]})
+    flag <- apply(v,1,function(x){x[k]==max(x)})
     tmp <- rownames(v)[which(flag)]
     if(length(tmp) > nmax) tmp <- tmp[seq_len(nmax)]
     select <- c(select, tmp)
@@ -899,8 +897,6 @@ cluster_id <- function(object, rank=2){
 #' @param ref Reference basis matrix for reordering. Number of rows 
 #'        must be equal to or larger than those in \code{object}. If
 #'        the numbers of rows differ, row names are used for matching.
-#' @param kmer.size For signature discovery, k-mer sizes of 3 or 5 
-#'        can be specified.
 #' @return Object containing mean (and sd for marginal likelihood) factorization
 #'        measure, basis/coefficient matrices averaged over resampling data.
 #' @examples
@@ -911,7 +907,7 @@ cluster_id <- function(object, rank=2){
 #' smean <- boot_ave(slist)
 #' plot(smean) 
 #' @export
-boot_ave <- function(object, reorder=TRUE, ref=NULL, kmer.size=NULL){
+boot_ave <- function(object, reorder=TRUE, ref=NULL){
   
   if(class(object)!='list') stop('Object in boot_ave is not a list')
   nb <- length(object)
@@ -930,11 +926,9 @@ boot_ave <- function(object, reorder=TRUE, ref=NULL, kmer.size=NULL){
     for(k in seq_len(nrank)){
       if(reorder){
         if(is.null(refo)) 
-          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(object[[1]])[[k]], 
-                           kmer.size=kmer.size)
+          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(object[[1]])[[k]])
         else
-          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(refo)[[k]], 
-                           kmer.size=kmer.size)
+          cosim <- cos_sim(X=basis(object[[i]])[[k]], Y=basis(refo)[[k]])
         perm <- clue::solve_LSAP(x=cosim, maximum=TRUE)
         perm <- match(seq_len(ranks(object[[i]])[k]), perm)
                 # permutation with max.overlap to ref
