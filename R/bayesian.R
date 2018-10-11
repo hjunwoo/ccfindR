@@ -189,6 +189,8 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
 #'        0, silent.
 #' @param progress.bar Display progress bar with \code{verbose = 1} for 
 #'       multiple runs.
+#' @param initializer If \code{'random'}, randomized initial conditions; 
+#'        \code{'svd2'} for singular value decomposed initial condition.
 #' @param Itmax Maximum no. of iteration.
 #' @param hyper.update Vector of four logicals, each indcating whether
 #'        hyperparameters \code{c(aw, bw, ah, bh)} should be optimized.
@@ -201,16 +203,15 @@ vb_init <- function(nrow,ncol,mat,rank, max=1.0, hyper, initializer){
 #' @param hyper.update.dn Step intervals for hyperparameter updates.
 #' @param connectivity If \code{TRUE}, connectivity and dispersion will
 #'        be calculated after each run. Can be turned off to save memory.
-#' @param initializer If \code{'random'}, randomized initial conditions; 
-#'        \code{'svd'} for singular value decomposed initial condition.
 #' @param fudge Small positive number used as lower bound for factor matrix 
 #'        elements to avoid singularity. If \code{fudge = NULL} (default), 
 #'        it will be replaced by \code{.Machine$double.eps}. 
 #'        Can be set to 0 to skip 
 #'        regularization.
-#' @param useC  Use C++ version of updates for speed.
 #' @param ncores Number of processors (cores) to run. If \code{ncores > 1},
 #'        parallelization is attempted.
+#' @param useC  Use C++ version of updates for speed.
+#' @param unif.stop Terminate if any of columns in basis matrix is uniform.
 #' @return Object of class \code{scNMFSet} with factorization slots filled.
 #' 
 #' @details When run with multiple values of \code{ranks}, factorization is 
@@ -232,8 +233,7 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
                          hyper.update.n0=10, hyper.update.dn=1, 
                          connectivity=TRUE, fudge=NULL,
                          ncores=1, useC=TRUE,
-                         unif.stop=TRUE,
-                         seeds=NULL){
+                         unif.stop=TRUE){
   
    if(is.null(fudge)) fudge <- .Machine$double.eps
    mat <- counts(object) # S4 class scNMFSet
@@ -248,9 +248,6 @@ vb_factorize <- function(object, ranks=2, nrun=1, verbose=2,
    
    ranks <- ranks[ranks <= ncol(mat)] # rank <= no. of columns
    nrank <- length(ranks)
-   
-   if(!is.null(seeds)) if(length(seeds)<nrun)
-     stop(paste0(nrun,' random number seeds required'))
    
    bundle <- list(mat=mat, ranks=ranks, verbose=verbose, gamma.a=gamma.a,
                   gamma.b=gamma.b, initializer=initializer, 

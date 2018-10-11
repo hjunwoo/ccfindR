@@ -202,8 +202,16 @@ setGeneric('basis', function(object) standardGeneric('basis'))
 #' @return List of basis matrices
 setMethod('basis', signature='scNMFSet', function(object) object@basis)
 
+#' Basis SD matrix accessor
+#' 
+#' @param object Object containing dbasis matrix
+#' @return List of dbasis matrices
 #' @export
 setGeneric('dbasis', function(object) standardGeneric('dbasis'))
+#' Basis SD matrix accessor
+#' 
+#' @param object Object containing basis standard deviation (SD) matrix
+#' @return List of dbasis matrices
 setMethod('dbasis', signature='scNMFSet', function(object) object@dbasis)
 
 #' Coefficient matrices in an Object
@@ -235,8 +243,17 @@ setGeneric('coeff', function(object) standardGeneric('coeff'))
 #' @return List of coefficient matrices
 setMethod('coeff', signature='scNMFSet', function(object) object@coeff)
 
+#' Coeff SD matrix accessor
+#' 
+#' @param object Object containing dcoeff matrix
+#' @return List of dcoeff matrices
 #' @export
 setGeneric('dcoeff', function(object) standardGeneric('dcoeff'))
+
+#' Coeffcient SD matrix accessor
+#' 
+#' @param object Object containing coeffient standard deviation (SD) matrix
+#' @return List of dcoeff matrices
 setMethod('dcoeff', signature='scNMFSet', function(object) object@dcoeff)
 
 #' Factorization measures in an Object
@@ -327,7 +344,7 @@ setValidity('scNMFSet', function(object){
 #' rowData(s) 
 #' @export
 setMethod('rowData','scNMFSet', 
-          function(x, use.names=TRUE){
+          function(x){
             callNextMethod()})
 #' Gene annotation assignment
 #' 
@@ -446,8 +463,20 @@ setMethod('basis<-','scNMFSet',
 #        if(validObject(object)) return(object)
          return(object)
          })
+#' Basis SD matrix assignment
+#' 
+#' @param object Object containing dbasis matrix
+#' @param value List for assignment
+#' @return Updated object
 #' @export
 setGeneric('dbasis<-', function(object,value) standardGeneric('dbasis<-'))
+#' Modify dbasis matrices
+#'
+#' Access and modify dbasis matrices 
+#' 
+#' @param object Object of class \code{scNMFSet}
+#' @param value Basis SD matrix to be substituted
+#' @return Modified object
 setMethod('dbasis<-','scNMFSet',
           function(object, value){
             object@dbasis <- value
@@ -487,8 +516,19 @@ setMethod('coeff<-','scNMFSet',
 #        if(validObject(object)) return(object)
          return(object)
 })
-#' @export
+#' Coeff SD matrix assignment
+#' 
+#' @param object Object containing dcoeff matrix
+#' @param value List for assignment
+#' @return Updated object
 setGeneric('dcoeff<-', function(object,value) standardGeneric('dcoeff<-'))
+#' Modify dcoeff matrices
+#'
+#' Access and modify dcoeff matrices 
+#' 
+#' @param object Object of class \code{scNMFSet}
+#' @param value Coeff SD matrix to be substituted
+#' @return Updated object
 setMethod('dcoeff<-','scNMFSet',
           function(object, value){
             object@dcoeff <- value
@@ -593,7 +633,7 @@ setMethod('plot',signature="scNMFSet",definition =
 #' s2 <- remove_zeros(s)
 #' s2
 #' @export
-remove_zeros <- function(object, remove.zeros=TRUE, fudge=NULL){
+remove_zeros <- function(object){
 
   if(is(object,'matrix'))
     count <- object
@@ -606,20 +646,11 @@ remove_zeros <- function(object, remove.zeros=TRUE, fudge=NULL){
   nc0 <- sum(cell0)
   
   if(ng0+nc0>0){
-    if(remove.zeros){     # shrink matrices
-      object <- object[!gene0,!cell0]
-      if(ng0>0)
-        cat(ng0,'empty rows removed\n')
-      if(nc0>0)
+    object <- object[!gene0,!cell0]
+    if(ng0>0)
+      cat(ng0,'empty rows removed\n')
+    if(nc0>0)
         cat(nc0,'empty cells removed\n')
-    }
-    else{
-      if(is.null(fudge)) fudge <- .Machine$double.eps
-      if(is(object,'matrix'))
-        object[gene0,] <- object[,cell0] <- fudge
-      else
-        counts(object)[gene0,] <- counts(object)[,cell0] <- fudge
-    }
   }
   object
 }

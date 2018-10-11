@@ -3,7 +3,7 @@
 \docType{methods}
 \name{rowData,scNMFSet-method}
 \alias{rowData,scNMFSet-method}
-\title{Gene annotation accessor}
+\title{Feature annotation accessor}
 \usage{
 \S4method{rowData}{scNMFSet}(x)
 }
@@ -11,10 +11,10 @@
 \item{x}{Object containing data}
 }
 \value{
-DataFrame of row annotation
+DataFrame of feature annotation
 }
 \description{
-Gene annotation accessor
+Feature annotation accessor
 }
 \examples{
 x <- matrix(rpois(n=12,lambda=3),4,3)

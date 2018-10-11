@@ -5,14 +5,69 @@
 \title{Plot heatmap of basis matrix}
 \usage{
 feature_map(object, basis.matrix = NULL, rank, markers = NULL,
-  subtract.mean = TRUE, log = TRUE, scheme = "max", sweep = TRUE,
-  ntop = 1, max.per.cluster = 10, Colv = NA, feature.names = NULL,
-  perm = NULL, main = "Feature map", cscale = NULL, cex.cluster = 1,
-  cex.feature = 0.5, mar = NULL, ...)
+  subtract.mean = TRUE, log = TRUE, max.per.cluster = 10,
+  feature.names = NULL, perm = NULL, main = "Feature map",
+  cscale = NULL, cex.cluster = 1, cex.feature = 0.5, mar = NULL,
+  ...)
+}
+\arguments{
+\item{object}{Object of class \code{scNMFSet}.}
+
+\item{basis.matrix}{Basis matrix can be supplied instead of \code{object}.}
+
+\item{rank}{Rank value for which the gene map is to be displayed. 
+The object must contain the corresponding slot (one element of 
+     \code{basis(object)[[k]]} for which \code{ranks(object)[[k]]==rank}.}
+
+\item{markers}{Vector of gene names containing markers to be included 
+in addition to the metagenes. All entries of \code{rowData(object)}
+matching them will be added to the metagene list.}
+
+\item{subtract.mean}{Process each rows of basis matrix \code{W} by 
+standardization using the mean of elements within the row.}
+
+\item{log}{If \code{TRUE}, \code{subtract.mean} uses geometric mean
+and division. Otherwise, use arithmetic mean and subtraction.}
+
+\item{max.per.cluster}{Maximum number of metagenes per cluster.}
+
+\item{feature.names}{Names to be used in the plot for features.}
+
+\item{perm}{Permutation of cluster IDs.}
+
+\item{main}{Main title.}
+
+\item{cscale}{Colors for heatmap.}
+
+\item{cex.cluster}{Cluster ID label size.}
+
+\item{cex.feature}{Feature ID label size.}
+
+\item{mar}{Margins for \code{graphics::par}.}
+
+\item{...}{Other arguments to be passed to \code{\link{image}}, and 
+\code{\link{plot}}.}
+}
+\value{
+\code{NULL}
 }
 \description{
 Generate heatmap of features derived from factorization of count data.
-#' @examples  
+}
+\details{
+This function uses \code{image()} and is more flexible than 
+\code{gene_map}.
+
+If \code{object} contains multiple ranks, only the requested 
+  rank's basis matrix W will be displayed. As in \code{gene_map}, the features
+  displayed in rows are selected by "max" scheme
+}
+\examples{
+ 
+set.seed(1)
+x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
+rownames(x) <- seq_len(10)
+ 
 set.seed(1)
 x <- simulate_data(nfeatures=10,nsamples=c(20,20,60))
 rownames(x) <- seq_len(10)

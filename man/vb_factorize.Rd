@@ -5,12 +5,11 @@
 \title{Bayesian NMF inference of count matrix}
 \usage{
 vb_factorize(object, ranks = 2, nrun = 1, verbose = 2,
-  progress.bar = TRUE, estimator = "mean", initializer = "svd2",
-  Itmax = 10000, hyper.update = rep(TRUE, 4), gamma.a = 1, gamma.b = 1,
+  progress.bar = TRUE, initializer = "random", Itmax = 10000,
+  hyper.update = rep(TRUE, 4), gamma.a = 1, gamma.b = 1,
   Tol = 1e-05, hyper.update.n0 = 10, hyper.update.dn = 1,
   connectivity = TRUE, fudge = NULL, ncores = 1, useC = TRUE,
-  normalize.signature = FALSE, kmer.size = 3, unif.stop = TRUE,
-  nboot = 1)
+  unif.stop = TRUE)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object containing count matrix.}
@@ -28,14 +27,8 @@ vb_factorize(object, ranks = 2, nrun = 1, verbose = 2,
 \item{progress.bar}{Display progress bar with \code{verbose = 1} for 
 multiple runs.}
 
-\item{estimator}{If \code{'mean'}, mean values of factor matrices 
-\code{W} and 
-\code{H} in E-step of EM algorithm are stored in \code{object}. 
-If \code{estimator = 'max'}, maximum a posteriori (MAP) 
-solutions are used instead.}
-
 \item{initializer}{If \code{'random'}, randomized initial conditions; 
-\code{'svd'} for singular value decomposed initial condition.}
+\code{'svd2'} for singular value decomposed initial condition.}
 
 \item{Itmax}{Maximum no. of iteration.}
 
@@ -67,6 +60,8 @@ regularization.}
 parallelization is attempted.}
 
 \item{useC}{Use C++ version of updates for speed.}
+
+\item{unif.stop}{Terminate if any of columns in basis matrix is uniform.}
 }
 \value{
 Object of class \code{scNMFSet} with factorization slots filled.

@@ -4,8 +4,8 @@
 \alias{gene_map}
 \title{Plot heatmap of metagene matrix}
 \usage{
-gene_map(object, rank, markers = NULL, subtract.mean = TRUE, log = TRUE,
-  max.per.cluster = 10, Colv = NA, gene.names = NULL, scheme = "max",
+gene_map(object, rank, markers = NULL, subtract.mean = TRUE,
+  log = TRUE, max.per.cluster = 10, Colv = NA, gene.names = NULL,
   main = "Genes", col = NULL, ...)
 }
 \arguments{

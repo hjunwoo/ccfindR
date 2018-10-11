@@ -4,8 +4,8 @@
 \alias{simulate_data}
 \title{Generate simulated data for factorization}
 \usage{
-simulate_data(nfeatures, nsamples, generate.factors = FALSE, nfactor = 10,
-  alpha0 = 0.5, shuffle = TRUE)
+simulate_data(nfeatures, nsamples, generate.factors = FALSE,
+  nfactor = 10, alpha0 = 0.5, shuffle = TRUE)
 }
 \arguments{
 \item{nfeatures}{Number of features \code{m} (e.g., genes).}

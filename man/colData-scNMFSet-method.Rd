@@ -3,18 +3,18 @@
 \docType{methods}
 \name{colData,scNMFSet-method}
 \alias{colData,scNMFSet-method}
-\title{Cell annotation accessor}
+\title{Sample annotation accessor}
 \usage{
 \S4method{colData}{scNMFSet}(x)
 }
 \arguments{
-\item{x}{Object containing cell annotation}
+\item{x}{Object containing sample annotation}
 }
 \value{
 Column annotation DataFrame
 }
 \description{
-Cell annotation accessor
+Sample annotation accessor
 }
 \examples{
 library(S4Vectors)

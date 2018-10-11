@@ -4,9 +4,8 @@
 \alias{meta_genes}
 \title{Find metagenes from basis matrix}
 \usage{
-meta_genes(object, rank, basis.matrix = NULL, max.per.cluster = 10,
-  gene_names = NULL, subtract.mean = TRUE, log = TRUE, scheme = "max",
-  ntop = 1)
+meta_genes(object, rank, basis.matrix = NULL, max.per.cluster = Inf,
+  gene_names = NULL, subtract.mean = TRUE, log = TRUE)
 }
 \arguments{
 \item{object}{Object of class \code{scNMFSet}.}
@@ -24,8 +23,7 @@ matrices, the matrix itself can be provided.}
 within each row.}
 
 \item{log}{Use geometric mean and division instead of arithmetic 
-mean and subtraction
-with \code{subtract.mean}.}
+mean and subtraction with \code{subtract.mean}.}
 }
 \value{
 List of vectors each containing metagene names of clusters.

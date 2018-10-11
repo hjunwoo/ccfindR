@@ -4,9 +4,10 @@
 \alias{factorize}
 \title{Maximum likelihood factorization}
 \usage{
-factorize(object, ranks = 2, nrun = 20, randomize = FALSE, nsmpl = 1,
-  verbose = 2, progress.bar = TRUE, Itmax = 10000, ncnn.step = 40,
-  criterion = "likelihood", linkage = "average", Tol = 1e-05)
+factorize(object, ranks = 2, nrun = 20, randomize = FALSE,
+  nsmpl = 1, verbose = 2, progress.bar = TRUE, Itmax = 10000,
+  ncnn.step = 40, criterion = "likelihood", linkage = "average",
+  Tol = 1e-05)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object containing count matrix.}

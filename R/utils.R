@@ -393,8 +393,7 @@ rowVars <- function(x, means){
 #' @export
 gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
                      log=TRUE, max.per.cluster = 10, Colv=NA,
-                     gene.names=NULL, scheme='max',
-                     main='Genes', col=NULL, ...){
+                     gene.names=NULL, main='Genes', col=NULL, ...){
   
   if(missing(rank)) rank <- ranks(object)[1] # by default the first rank
   w <- basis(object)[ranks(object)==rank][[1]]
@@ -406,8 +405,7 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
   colnames(w) <- seq_len(rank)
   if(!is.null(gene.names)) rownames(w) <- gene.names
   if(dim(w)[1] <= max.per.cluster) select <- rownames(w)
-  else select <- gene_select(w, markers, max.per.cluster= max.per.cluster,
-                             scheme=scheme)
+  else select <- gene_select(w, markers, max.per.cluster= max.per.cluster)
   w <- w[select,]
   if(is.null(col)) ccol <- grDevices::rainbow(n = dim(w)[2])
   else ccol <- col
@@ -436,10 +434,15 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' @param log If \code{TRUE}, \code{subtract.mean} uses geometric mean
 #'        and division. Otherwise, use arithmetic mean and subtraction.
 #' @param max.per.cluster Maximum number of metagenes per cluster.
-#' @param cscale Colors for heatmap
 #' @param feature.names Names to be used in the plot for features.
+#' @param perm Permutation of cluster IDs.
+#' @param main Main title.
+#' @param cscale Colors for heatmap.
+#' @param cex.cluster Cluster ID label size. 
+#' @param cex.feature Feature ID label size.
 #' @param mar Margins for \code{graphics::par}.
-#' @param ... Other arguments to be passed to \code{\link{image}}, and \code{\link{plot}}.
+#' @param ... Other arguments to be passed to \code{\link{image}}, and 
+#'        \code{\link{plot}}.
 #'            
 #' @details If \code{object} contains multiple ranks, only the requested 
 #'   rank's basis matrix W will be displayed. As in \code{gene_map}, the features
@@ -460,7 +463,7 @@ gene_map <- function(object, rank, markers=NULL, subtract.mean=TRUE,
 #' feature_map(s, rank=3)
 #' @export
 feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL, 
-                        subtract.mean=TRUE, log=TRUE, scheme='max',
+                        subtract.mean=TRUE, log=TRUE, 
                         max.per.cluster = 10, feature.names=NULL, perm=NULL,
                         main='Feature map', cscale=NULL, 
                         cex.cluster=1, cex.feature=0.5, mar=NULL, ...){
@@ -475,14 +478,14 @@ feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL,
   if(is.null(basis.matrix)){
     w <- basis(object)[ranks(object)==rank][[1]][,perm]
     meta <- meta_genes(object, rank=rank, subtract.mean=subtract.mean,
-                       scheme=scheme, gene_names=feature.names,
+                       gene_names=feature.names,
                        log=log, max.per.cluster=max.per.cluster)
     colnames(w) <- seq_len(rank)
   }
   else{
     w <- basis.matrix
     meta <- meta_genes(basis.matrix=w, rank=rank, subtract.mean=subtract.mean,
-                       scheme=scheme, gene_names=feature.names,
+                       gene_names=feature.names,
                        log=log, max.per.cluster=max.per.cluster)
   }
 
@@ -518,7 +521,7 @@ feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL,
   
   if(is.null(mar)) mar <- c(5.1,4.1,4.1,4)
   par(mar=mar)
-  image(seq_len(nc), seq_len(nr), t(x)[,seq(nr,1)], xlim=0.5+c(0,nc),
+  graphics::image(seq_len(nc), seq_len(nr), t(x)[,seq(nr,1)], xlim=0.5+c(0,nc),
         ylim=0.5+c(0,nr), axes=FALSE, xlab='',ylab='',col=cscale)
   graphics::axis(1,seq_len(nc), labels=seq_len(nc), las=1, line=-1.0,tick=0, 
        cex.axis=cex.cluster)
@@ -526,13 +529,13 @@ feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL,
   graphics::text(x=rank+0.7,y=seq(nr,1), labels=rownames(w1), col=col,xpd=NA, 
        cex=cex.feature, adj=0)
   y <- nrow(w1) + 0.5
-  segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
+  graphics::segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
   for(k in seq_len(rank)){
     graphics::text(x=-0.1, y=y-1, label=k, cex=cex.cluster, xpd=NA)
     y <- y-step[k]
     graphics::segments(x0=0.5, x1=rank+2, lty=2, y0=y, y1=y, xpd=NA, lwd=0.5)
   }
-  title(adj=0.5,main=main)
+  graphics::title(adj=0.5,main=main)
 }
 #' Plot heatmap of clustering coefficient matrix
 #' 
@@ -597,14 +600,13 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' s <- vb_factorize(s,ranks=seq(2,5))
 #' meta_genes(s, rank=4)
 #' @export
-meta_genes <- function(object, rank, basis.matrix=NULL, dbasis=NULL,
+meta_genes <- function(object, rank, basis.matrix=NULL, 
                        max.per.cluster=Inf,gene_names=NULL,
-                       subtract.mean=TRUE,log=TRUE,scheme='max'){
+                       subtract.mean=TRUE,log=TRUE){
   
   if(is.null(basis.matrix)){
     idx <- ranks(object)==rank
     w <- basis(object)[idx][[1]]
-    cw <- dbasis(object)[idx][[1]]/w
     if(subtract.mean){
       if(log) w <- log10(w)
       w <- w - rowMeans(w)
@@ -613,28 +615,22 @@ meta_genes <- function(object, rank, basis.matrix=NULL, dbasis=NULL,
   } else{
     w <- basis.matrix
     rank <- ncol(w)
-    cw <- dbasis/w
   }
-  if(!is.null(gene_names)) rownames(w) <- rownames(cw) <- gene_names
+  if(!is.null(gene_names)) rownames(w) <- gene_names
   nmax <- min(max.per.cluster, nrow(w))
   select <- vector('list',rank)
   for(k in seq_len(rank)){
     idx <- order(w[,k],decreasing=TRUE)
     v <- w[idx,]
-    cv <- cw[idx,]
     itmp <- NULL
-    if(scheme=='max'){
-      for(i in seq_len(nrow(v))){
+    for(i in seq_len(nrow(v))){
         x <- v[i,] 
         ix <- order(x,decreasing=TRUE)
         flag <- k==ix[1] 
         if(!flag) next
         xp <- log(mean(exp(x[ix[-1]])))
         itmp <- c(itmp,i)
-      }
     }
-    else if(scheme=='sort')
-      itmp <- seq_len(nrow(v))
     tmp <- rownames(v)[itmp]
     if(length(tmp) > nmax) tmp <- tmp[seq_len(nmax)]
     select[[k]] <- tmp
@@ -642,8 +638,7 @@ meta_genes <- function(object, rank, basis.matrix=NULL, dbasis=NULL,
   select
 }
 
-gene_select <- function(w, markers = NULL, max.per.cluster = 10,
-                        scheme='max'){
+gene_select <- function(w, markers = NULL, max.per.cluster = 10){
   
   rank <- dim(w)[2]
   select <- c()

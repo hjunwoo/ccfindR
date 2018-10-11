@@ -4,9 +4,10 @@
 \alias{filter_genes}
 \title{Filter genes with quality control criteria}
 \usage{
-filter_genes(object, markers = NULL, vmr.min = 0, min.cells.expressed = 0,
-  max.cells.expressed = Inf, rescue.genes = FALSE, progress.bar = TRUE,
-  save.memory = FALSE, plot = TRUE, log = "xy", cex = 0.5)
+filter_genes(object, markers = NULL, vmr.min = 0,
+  min.cells.expressed = 0, max.cells.expressed = Inf,
+  rescue.genes = FALSE, progress.bar = TRUE, save.memory = FALSE,
+  plot = TRUE, log = "xy", cex = 0.5)
 }
 \arguments{
 \item{object}{\code{scNMFSet} object.}
