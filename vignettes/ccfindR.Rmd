@@ -355,7 +355,7 @@ After factorization, the `measure` slot has been filled:
 measure(sc)
 ```
 
-These measures can be plotted (Fig. \@ref(fig:measure):
+These measures can be plotted (Fig. \@ref(fig:measure)):
 ```{R measure, fig.large=TRUE, fig.cap='Factorization quality measures as functions of the rank. Dispersion measures the degree of bimodality in consistency matrix. Cophenetic correlation measures the degree of agreement between consistency matrix and hierarchical clustering.'}
 plot(sc)
 ```
