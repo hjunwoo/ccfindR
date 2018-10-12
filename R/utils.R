@@ -601,7 +601,7 @@ cell_map <- function(object, rank, main = 'Cells', ...){
 #' meta_genes(s, rank=4)
 #' @export
 meta_genes <- function(object, rank, basis.matrix=NULL, 
-                       max.per.cluster=Inf,gene_names=NULL,
+                       max.per.cluster=10,gene_names=NULL,
                        subtract.mean=TRUE,log=TRUE){
   
   if(is.null(basis.matrix)){

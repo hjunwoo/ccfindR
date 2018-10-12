@@ -4,7 +4,7 @@
 \alias{meta_genes}
 \title{Find metagenes from basis matrix}
 \usage{
-meta_genes(object, rank, basis.matrix = NULL, max.per.cluster = Inf,
+meta_genes(object, rank, basis.matrix = NULL, max.per.cluster = 10,
   gene_names = NULL, subtract.mean = TRUE, log = TRUE)
 }
 \arguments{
