@@ -126,7 +126,6 @@ setMethod('show', signature='scNMFSet',
 #' counts(s)
 #' 
 #' @export
-#' @import BiocGenerics
 setMethod('counts',signature='scNMFSet',
      function(object){
        assay(object, i='counts')
