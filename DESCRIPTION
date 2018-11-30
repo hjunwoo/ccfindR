@@ -8,7 +8,7 @@ Depends: R (>= 3.5.1)
 Imports: stats, S4Vectors, utils, methods, Matrix,
         SummarizedExperiment, SingleCellExperiment, Rtsne, graphics,
         grDevices, gtools, RColorBrewer, ape, Rmpi, irlba, Rcpp
-biocViews: Transcriptomics, SingleCell, Bayesian, Clustering
+biocViews: Transcriptomics, SingleCell, ImmunoOncology, Bayesian, Clustering
 Description: A collection of tools for cancer genomic data clustering
     analyses, including those for single cell RNA-seq.
     Cell clustering and feature gene selection analysis employ Bayesian 
