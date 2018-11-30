@@ -446,8 +446,7 @@ In `visualize_clusters()`, each column of $\sf H$ matrix is used to assign
 cells into clusters, and inter/intra-cluster separations are visualized 
 using tSNE algorithm [@van_der_maaten_hinton]. It uses the `Rtsne()` 
 function of the `Rtsne` package. A barplot of cluster cell counts are 
-also displayed
-(\@(tsne)):
+also displayed (Fig: \@ref(fig:tsne)):
 ```{r tsne, fig.cap='tSNE-based visualization of clustering. Coefficient matrix elements of cells were used as input with colors indicating predicted cluster assignment. The bar plot shows the cell counts of each cluster.'}
 visualize_clusters(sb, rank = 5, cex = 0.7)
 ```
