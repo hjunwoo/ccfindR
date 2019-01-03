@@ -1,4 +1,4 @@
-ccfindR 1.1.3
+ccfindR 1.2.1
 ================
 Changes:
 
@@ -6,7 +6,7 @@ Changes:
     factorize(...) 
   such that matrix elements with zero counts are included
 
-ccfindR 1.1.2
+ccfindR 1.2.0
 ================
 
 Changes:
