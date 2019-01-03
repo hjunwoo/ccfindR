@@ -41,8 +41,9 @@ likelihood <- function(mat,w,h){
 
   wh <- as.vector(w %*% h)
   amat <- as.vector(mat)
-  iz <- amat > 0 & wh > 0
-  x <- sum(amat[iz]*log(wh[iz]/amat[iz])-wh[iz]+amat[iz])
+  x <- sum(amat*log(wh)-wh)
+  z <- amat[amat > 0]
+  x <- x + sum(-z*log(z)+z)
   x/nrow(mat)/ncol(mat)
 
 }
