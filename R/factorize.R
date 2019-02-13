@@ -138,7 +138,8 @@ cophenet <- function(conav, nc, method='average'){
 factorize <- function(object, ranks=2, nrun=20, randomize=FALSE, 
                       nsmpl=1, verbose=2, progress.bar=TRUE, 
                       Itmax=10000, ncnn.step=40, criterion='likelihood',
-                      linkage='average', Tol=1e-5){
+                      linkage='average', Tol=1e-5,
+                      store.connectivity=FALSE){
   
   mat <- counts(object)  
   
@@ -266,5 +267,9 @@ factorize <- function(object, ranks=2, nrun=20, randomize=FALSE,
     meas <- data.frame(rank=ranks, likelihood=rave, 
               dispersion=dave, cophenetic=coav)
   measure(object) <- meas
+  
+  if(store.connectivity)
+    object@metadata <- list(nrun=nrun, connectivity=conav/nrun)
+  
   return(object)  
 }
