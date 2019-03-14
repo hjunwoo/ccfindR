@@ -1,3 +1,9 @@
+ccfindR 1.2.2
+================
+Changes:
+
+* Fixed filter_genes(...) for cases with non-expressed genes
+
 ccfindR 1.2.1
 ================
 Changes:
