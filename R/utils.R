@@ -135,8 +135,16 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
                          min.cells.expressed=0, max.cells.expressed=Inf, 
                          rescue.genes=FALSE, progress.bar=TRUE,
                          save.memory=FALSE, plot=TRUE, log='xy',cex=0.5){
+
+  ncexpr <- Matrix::rowSums(counts(object) > 0) 
+  # no. of cells expressing each gene
+  count <- counts(object)
+  count <- count[ncexpr>0,]
+  ncexpr <- ncexpr[ncexpr>0]
+  ngenes <- nrow(count)
   
-  selected_genes <- variable_genes <- rep(FALSE, nrow(object))
+  selected_genes <- variable_genes <- rep(FALSE, ngenes)
+  
   if(is.null(markers)) marker_genes=NULL
   else{
     for(k in seq_len(ncol(rowData(object))))
@@ -145,12 +153,6 @@ filter_genes <- function(object, markers= NULL, vmr.min=0,
     marker_genes <- selected_genes
   } 
     
-  ncexpr <- Matrix::rowSums(counts(object) > 0) 
-                # no. of cells expressing each gene
-  count <- counts(object)
-  count <- count[ncexpr>0,]
-  ncexpr <- ncexpr[ncexpr>0]
-  ngenes <- nrow(object)
   vmr <- calc_vmr(count, save.memory=save.memory, 
                   progress.bar=progress.bar)
   

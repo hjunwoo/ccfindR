@@ -4,39 +4,9 @@
 \alias{optimal_rank}
 \title{Determine optimal rank}
 \usage{
-optimal_rank(object, df = 10, type = 1, max.slope = 1e-04)
-}
-\arguments{
-\item{object}{\code{scNMFSet} object containing factorization output.}
-
-\item{df}{Degree of freedom for spline fit. Upper bound is the total 
-number of data (number of rank values scanned).}
-
-\item{type}{\code{c(1,2)}. Type 1 is where there is a clear maximum. 
-Type 2 is where marginal likelihood reaches a maximal level and 
-stays constant.}
-
-\item{max.slope}{For Type 2, optimal rank is defined as the minimum rank 
-where the slope of log ML with respect to rank becomes smaller 
-than this parameter.}
-}
-\value{
-Optimal rank.
+optimal_rank(object, df = 10, BF.threshold = 3, type = NULL,
+  m = NULL)
 }
 \description{
-Takes as main argument \code{scNMFSet} object containing factorization output
-and attempts to determine optimal rank.
-}
-\details{
-Spline fit is used for log marginal likelihood versus rank data. 
-       For Type 1, the location of maximum is returned.
-       For Type 2, lowest rank with slope smaller than specified value will be returned.
-}
-\examples{
-set.seed(1)
-x <- simulate_whx(nrow=50,ncol=100,rank=5)
-s <- scNMFSet(x$x)
-s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
-plot(s)
-optimal_rank(s)
+Determine optimal rank
 }
