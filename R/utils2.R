@@ -1,5 +1,18 @@
 #' Write meta genes to a file
+#' 
+#' Write a csv file of meta gene lists from input list
+#' @param meta List of meta genes output from \code{meta_genes}
+#' @param file Output file name
+#' @return \code{NULL}
 #' @export
+#' @examples
+#' set.seed(1)
+#' x <- simulate_whx(nrow=50, ncol=100, rank=5)
+#' s <- scNMFSet(x$x)
+#' s <- vb_factorize(s, ranks=seq(2,8), nrun=5)
+#' plot(s)
+#' m <- meta_genes(s, rank=5)
+#' write_meta(m, file='meta.csv')
 write_meta <- function(meta,file){
   
   rank <- length(meta)
@@ -11,25 +24,52 @@ write_meta <- function(meta,file){
     dat[seq_len(length(meta[[k]])),k] <- meta[[k]]
   rownames(dat) <- seq_len(nmax)
   colnames(dat) <- seq_len(rank)
-  write.csv(dat,file=file)
+  utils::write.csv(dat,file=file)
+  return(invisible(object))
 }
 
 #' Determine optimal rank
+#' 
+#' Takes as main argument \code{scNMFSet} object containing factorized output
+#' and estimate the optimal rank.
+#' 
+#' @param object \code{scNMFSet} object containing factorization output, or 
+#'        data frame containing the rank-evidence profile.
+#' @param df Degrees of freedom for split fit. Upper bound is the total number of
+#'        data points (number of rank values scanned).
+#' @param BF.threshold Bayes factor threshold for statistical threshold. 
+#' @param type \code{c(1,2)}. Type 1 is where there is a clear maximum. Type 2 
+#'        is where marginal likelihood reaches a maximal level and stays constant.
+#'        If omitted, the type will be inferred from data.
+#' @param m Number of features (e.g., genes) in the count matrix. Only necessary when
+#'        \code{object} is of type \code{data.frame}.
+#' @return List containing \code{type} and \code{ropt} (optimal rank).
+#' 
+#' @details The input object is used along with Bayes factor threshold to determine the
+#'          heterogeneity type (1 or 2) and the optimal rank. 
+#'          If evidence(rank 1)/evidence(rank2) > \code{BF.treshold}, rank 1 is favorable than rank 2.
+#' @examples
+#' set.seed(1)
+#' x <- simulate_whx(nrow=50, ncol=100, rank=5)
+#' s <- scNMFSet(x$x)
+#' s <- vb_factorize(s, ranks=seq(2,8), nrun=5)
+#' plot(s)
+#' optimal_rank(s)
 #' @export
 optimal_rank <- function(object, df=10, BF.threshold=3, type=NULL, m=NULL){
   
-  if(class(object)=='scNMFSet'){
-    me <- measure(object)[,1:2]
+  if(is(object,'scNMFSet')){
+    me <- measure(object)[,c(1,2)]
     m <- nrow(object)
   }
-  else if(class(object)=='data.frame'){
-    me <- object[,1:2]
+  else if(is(object,'data.frame')){
+    me <- object[,c(1,2)]
     if(is.null(m)) stop('No. of rows unknown')
   }
   else stop('Inappropriate class of object')
   
   df <- min(df,nrow(me))
-  fs <- smooth.spline(x=me[,1],y=me[,2],df=df)
+  fs <- stats::smooth.spline(x=me[,1],y=me[,2],df=df)
   rst <- fs$x[which.max(fs$y)]     # arg max_r (L)
   bf <- log(BF.threshold)/m
   
@@ -71,11 +111,32 @@ slope <- function(y,x){
 }
 
 #' Meta gene table with CV
+#'
+#' Generates meta gene table with coefficient of variation 
+#' @param object Main object containing factorization outcome
+#' @param rank Rank for which meta gene is to be found
+#' @param basis.matrix Basis matrix to work with. Only necessary when 
+#'        \code{object} is \code{NULL}.
+#' @param dbasis Variance of basis matrix. Only necessary when 
+#'        \code{object} is \code{NULL}.
+#' @param max.per.cluster Maximum meta genes per cluster.
+#' @param gene_names Name of genes. If \code{NULL}, will be taken from row names.
+#' @param subtract.mean Standardize magnitudes of basis elements by subtracting mean
+#' @param log Use geometric mean.
+#' @param cv.max Upper bound for CV in selecting meta genes.
+#' @return Data frame with meta genes and their CV in each column.
+#' @examples
+#' set.seed(1)
+#' x <- simulate_whx(nrow=50, ncol=100, rank=5)
+#' s <- scNMFSet(x$x)
+#' s <- vb_factorize(s, ranks=seq(2,8), nrun=5)
+#' plot(s)
+#' meta_gene.cv(s, rank=5)
 #' @export
 meta_gene.cv <- function(object=NULL, rank, basis.matrix=NULL, 
                          dbasis=NULL, max.per.cluster=100,
                          gene_names=NULL, subtract.mean=TRUE,
-                         log=TRUE, scheme='max', cv.max=1){
+                         log=TRUE, cv.max=1){
   
   if(is.null(basis.matrix)){
     idx <- ranks(object)==rank

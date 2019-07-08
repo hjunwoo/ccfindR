@@ -109,6 +109,7 @@ cophenet <- function(conav, nc, method='average'){
 #'        calculating cophenetic correlation. 
 #' @param Tol Tolerance for checking convergence with 
 #'       \code{criterion = 'likelihood'}.
+#' @param store.connectivity Returns a list also containing connectivity data.
 #'        
 #' @return Object of class \code{scNMFSet} with factorization slots filled.
 #' 

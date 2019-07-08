@@ -112,9 +112,9 @@ setMethod('show', signature='scNMFSet',
              cat('class:', class(object),'\n')
              cat('dim:', dim(object),'\n')
              cat('rownames: ')
-             print(head(rownames(object)))
+             print(utils::head(rownames(object)))
              cat('colnames: ')
-             print(head(colnames(object)))
+             print(utils::head(colnames(object)))
           })
 
 #' Accessor for count matrix

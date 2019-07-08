@@ -44,6 +44,8 @@ calculating cophenetic correlation.}
 
 \item{Tol}{Tolerance for checking convergence with 
 \code{criterion = 'likelihood'}.}
+
+\item{store.connectivity}{Returns a list also containing connectivity data.}
 }
 \value{
 Object of class \code{scNMFSet} with factorization slots filled.

@@ -518,7 +518,7 @@ feature_map <- function(object, basis.matrix=NULL, rank, markers=NULL,
   nr <- nrow(w1)
   
   x <- sweep(w1, 1, rowMeans(w1), check.margin=TRUE)
-  sx <- apply(x,1,sd)
+  sx <- apply(x,1,stats::sd)
   x <- sweep(x, 1, sx, '/', check.margin=FALSE)
   
   if(is.null(mar)) mar <- c(5.1,4.1,4.1,4)

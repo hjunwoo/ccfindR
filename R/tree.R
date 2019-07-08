@@ -1,8 +1,17 @@
 #' Generate Newick format tree string from tree list object 
+#' 
 #' @param tree Tree list object from \code{\link{build_tree}}
 #' @param parent Parent ID 
 #' @param string Newick string of parent tree
 #' @return String of newick tree
+#' @examples
+#' set.seed(1)
+#' x <- simulate_whx(nrow=50,ncol=100,rank=5)
+#' s <- scNMFSet(x$x)
+#' s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
+#' tree <- build_tree(s,rmax=5)
+#' nw <- newick(tree=tree)
+#' nw
 #' @export
 newick <- function(tree, parent='1.1',string=''){
   

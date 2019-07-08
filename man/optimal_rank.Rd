@@ -7,6 +7,39 @@
 optimal_rank(object, df = 10, BF.threshold = 3, type = NULL,
   m = NULL)
 }
+\arguments{
+\item{object}{\code{scNMFSet} object containing factorization output, or 
+data frame containing the rank-evidence profile.}
+
+\item{df}{Degrees of freedom for split fit. Upper bound is the total number of
+data points (number of rank values scanned).}
+
+\item{BF.threshold}{Bayes factor threshold for statistical threshold.}
+
+\item{type}{\code{c(1,2)}. Type 1 is where there is a clear maximum. Type 2 
+is where marginal likelihood reaches a maximal level and stays constant.
+If omitted, the type will be inferred from data.}
+
+\item{m}{Number of features (e.g., genes) in the count matrix. Only necessary when
+\code{object} is of type \code{data.frame}.}
+}
+\value{
+List containing \code{type} and \code{ropt} (optimal rank).
+}
 \description{
-Determine optimal rank
+Takes as main argument \code{scNMFSet} object containing factorized output
+and estimate the optimal rank.
+}
+\details{
+The input object is used along with Bayes factor threshold to determine the
+         heterogeneity type (1 or 2) and the optimal rank. 
+         If evidence(rank 1)/evidence(rank2) > \code{BF.treshold}, rank 1 is favorable than rank 2.
+}
+\examples{
+set.seed(1)
+x <- simulate_whx(nrow=50, ncol=100, rank=5)
+s <- scNMFSet(x$x)
+s <- vb_factorize(s, ranks=seq(2,8), nrun=5)
+plot(s)
+optimal_rank(s)
 }

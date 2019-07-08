@@ -19,3 +19,12 @@ String of newick tree
 \description{
 Generate Newick format tree string from tree list object
 }
+\examples{
+set.seed(1)
+x <- simulate_whx(nrow=50,ncol=100,rank=5)
+s <- scNMFSet(x$x)
+s <- vb_factorize(s,ranks=seq(2,8),nrun=5)
+tree <- build_tree(s,rmax=5)
+nw <- newick(tree=tree)
+nw
+}

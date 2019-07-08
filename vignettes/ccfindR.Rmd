@@ -21,7 +21,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-The `ccfindR` (Cancer Clone findeR) package contains 
+The `ccfindR` (Cancer Clone findeR) package [@woo_etal] contains 
 implementations and utilities for analyzing single-cell 
 RNA-sequencing data, including quality control, 
 unsupervised clustering for discovery of cell types, 
@@ -59,6 +59,7 @@ $\sf W$ and $\sf H$ [@lee_seung]:
 \begin{equation}
 \sf{X} \sim {\sf W}{\sf H}.
 \end{equation}
+
 If $\sf X$ is a $p\times n$ matrix ($p$ genes and $n$ cells), 
 the basis matrix $\sf W$ is $p \times r$ and coefficient matrix 
 $\sf H$ is $r \times n$ in dimension, respectively, where the rank $r$ is 
@@ -66,16 +67,20 @@ a relatively small integer.
 A statistical inference-based interpretation of NMF is to view $X_{ij}$ as 
 a realization of a Poisson distribution with the mean for each matrix
 element given by $({\sf WH})_{ij}\equiv \Lambda_{ij}$, or
+
 \begin{equation}
 \Pr(x_{ij})=\frac{e^{-\Lambda_{ij}}{\Lambda_{ij}}^{x_{ij}}}
 {\Gamma(1+x_{ij})}.
 \end{equation}
+
 The maximum likelihood inference of the latter is then achieved by 
 maximizing
+
 \begin{equation}
 L = \sum_{ij} \left(X_{ij} \ln \frac{\Lambda_{ij}}{X_{ij}}-
   \Lambda_{ij}+X_{ij}\right).
 \end{equation}
+
 The Kullback-Leibler measure of the distance between $\sf X$ and 
 $\sf \Lambda$,
 which is minimized, is equal to $-L$.
@@ -405,6 +410,13 @@ as a function of rank (Fig. \@ref(fig:lml)):
 plot(sb)
 ```
 
+The optimal rank is estimated from the rank-evidence profile by:
+```{r}
+optimal_rank(sb)
+```
+The heterogeneity class (type I or II) distinguishes cases where
+there is a clear and finite optimal rank (type I) from those where
+the evidence asymptotically reaches a maximal level (type II) [@woo_etal].
 ## Visualization
 The rank scan above using Bayesian inference correctly identifies 
 $r=5$ as the optimal rank. The fit results for each rank--from 
