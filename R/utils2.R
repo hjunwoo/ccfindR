@@ -25,7 +25,7 @@ write_meta <- function(meta,file){
   rownames(dat) <- seq_len(nmax)
   colnames(dat) <- seq_len(rank)
   utils::write.csv(dat,file=file)
-  return(invisible(object))
+  return(invisible(meta))
 }
 
 #' Determine optimal rank
