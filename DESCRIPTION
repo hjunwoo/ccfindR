@@ -20,7 +20,7 @@ Description: A collection of tools for cancer genomic data clustering
     construction of rank-based trees for clusters.
 License: GPL (>= 2)
 NeedsCompilation: yes
-URL: http://dx.doi.org/10.1101/052662
+URL: http://dx.doi.org/10.26508/lsa.201900443
 RoxygenNote: 6.1.1
 Encoding: UTF-8
 Suggests: BiocStyle, knitr, rmarkdown
