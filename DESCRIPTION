@@ -1,14 +1,11 @@
 Package: ccfindR
-Version: 1.6.0
+Version: 1.5.0
 Date: 2019-10-1
 Title: Cancer Clone Finder
 Authors@R: c(person('Jun','Woo',role=c('aut','cre'),email='jwoo@umn.edu'),
              person('Jinhua','Wang',role='aut',email='wangjh@umn.edu'))
 Depends: R (>= 3.6.0)
-Imports: stats, S4Vectors, utils, methods, Matrix,
-        SummarizedExperiment, SingleCellExperiment, Rtsne, graphics,
-        grDevices, gtools, RColorBrewer, ape, Rmpi, irlba, Rcpp, 
-        Rdpack (>= 0.7)
+Imports: stats, S4Vectors, utils, methods, Matrix, SummarizedExperiment, SingleCellExperiment, Rtsne, graphics, grDevices, gtools, RColorBrewer, ape, Rmpi, irlba, Rcpp, Rdpack (>= 0.7)
 RdMacros: Rdpack
 biocViews: Transcriptomics, SingleCell, ImmunoOncology, Bayesian, Clustering
 Description: A collection of tools for cancer genomic data clustering

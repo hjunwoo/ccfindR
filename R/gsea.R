@@ -61,14 +61,14 @@ assignCelltype <- function(obj, rank, gset, gene_names=NULL, p=0, remove.na=FALS
   N <- NROW(glist)
   nS <- length(gset)
   Ep <- matrix(0, nrow=NROW(ES), ncol=rank)
-  if(progress.bar) pb <- txtProgressBar(style=3)
+  if(progress.bar) pb <- utils::txtProgressBar(style=3)
   for(k in seq_len(nperm)){
     perm <- sample(N)
     x <- gsea(glist=glist[perm,], gwgt=gwgt[perm,], gset=gset, p=p, 
               remove.na=remove.na, grp.prefix=grp.prefix)
     Ep <- Ep + (ES < x)
     if(progress.bar & k %% 10==0)
-      setTxtProgressBar(pb, value=k/nperm)
+      utils::setTxtProgressBar(pb, value=k/nperm)
   }
   if(progress.bar) close(pb)
   Ep <- Ep / nperm
@@ -84,7 +84,7 @@ gsea <- function(glist, gwgt, gset, p, remove.na, grp.prefix=c('IG','KRT')){
   
   ES <- matrix(0, nrow=nS, ncol=rank)
   colnames(ES) <- seq_len(rank)
-  rownames(ES) <- names(markers)
+  rownames(ES) <- names(gset)
   for(k in seq_len(rank)){
     for(is in seq_len(nS)){
       gs <- gset[[is]]
