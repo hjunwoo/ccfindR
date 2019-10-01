@@ -62,6 +62,7 @@
 #' @import SingleCellExperiment
 #' @import S4Vectors
 #' @import methods
+#' @importFrom Rdpack reprompt
 setClass('scNMFSet',
          slots=c(ranks='vector',
                  basis='list', dbasis='list',

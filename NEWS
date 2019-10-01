@@ -1,3 +1,10 @@
+ccfindR 1.5.0
+================
+Changes:
+
+* Revised default meta_gene.cv(..., cv.max=Inf)
+* Added assignCelltype(...)
+
 ccfindR 1.4.1
 ================
 Changes:

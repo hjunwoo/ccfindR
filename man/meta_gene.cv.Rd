@@ -6,7 +6,7 @@
 \usage{
 meta_gene.cv(object = NULL, rank, basis.matrix = NULL, dbasis = NULL,
   max.per.cluster = 100, gene_names = NULL, subtract.mean = TRUE,
-  log = TRUE, cv.max = 1)
+  log = TRUE, cv.max = Inf)
 }
 \arguments{
 \item{object}{Main object containing factorization outcome}

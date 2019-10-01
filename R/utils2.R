@@ -136,7 +136,7 @@ slope <- function(y,x){
 meta_gene.cv <- function(object=NULL, rank, basis.matrix=NULL, 
                          dbasis=NULL, max.per.cluster=100,
                          gene_names=NULL, subtract.mean=TRUE,
-                         log=TRUE, cv.max=1){
+                         log=TRUE, cv.max=Inf){
   
   if(is.null(basis.matrix)){
     idx <- ranks(object)==rank
